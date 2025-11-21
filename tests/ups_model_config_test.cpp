@@ -6,5 +6,5 @@ TEST(UpsModelConfigTest, LoadTest) {
 
     bool ok = cfg.load("config/ups_models.ini", "INELT");
 
-    EXPECT_TRUE(true);
+    EXPECT_TRUE(ok) << cfg.lastError;
 }

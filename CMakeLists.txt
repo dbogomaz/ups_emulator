@@ -41,6 +41,10 @@ set_target_properties(ups_core PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+if (BUILD_COVERAGE)
+    target_compile_options(ups_core PRIVATE --coverage -O0 -g)
+endif()
+
 
 
 # ============================================================
@@ -58,15 +62,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
-
-
-# ============================================================
-#            COVERAGE FLAGS (local to core + tests)
-# ============================================================
 if (BUILD_COVERAGE)
-    message(STATUS "Coverage enabled")
-    target_compile_options(${PROJECT_NAME} PRIVATE --coverage -O0 -g)
-    target_link_options(${PROJECT_NAME} PRIVATE --coverage)
+    target_link_options(ups_emulator PRIVATE --coverage)
 endif()
 
 

@@ -2,7 +2,7 @@
 set -e
 
 echo "Running tests..."
-./@TEST_FILE@
+ctest --output-on-failure
 
 echo "Capturing raw coverage..."
 lcov --capture --directory . \
