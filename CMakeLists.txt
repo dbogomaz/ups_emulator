@@ -117,7 +117,7 @@ if (BUILD_TESTING)
 
     # ===== Добавление тестов =====
     add_ups_test(ups_model_config_test
-        tests/ups_model_config_test.cpp
+        tests/unit/ups_model_config_test.cpp
     )
 
 endif()
