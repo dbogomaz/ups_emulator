@@ -9,6 +9,12 @@ set(PROJECT_INCLUDE_DIR
     ${CMAKE_SOURCE_DIR}/src
 )
 
+set(WARN_FLAGS
+    -Wall
+    -Wextra
+    -Wpedantic
+)
+
 
 
 # ============================================================
@@ -16,7 +22,8 @@ set(PROJECT_INCLUDE_DIR
 # ============================================================
 option(BUILD_TESTING "Build unit tests" ON)
 option(BUILD_COVERAGE "Enable coverage instrumentation" ON)
-
+set(COVERAGE_COMPILE_FLAGS --coverage -O0 -g)
+set(COVERAGE_LINK_FLAGS --coverage)
 
 
 # ============================================================
@@ -41,8 +48,10 @@ set_target_properties(ups_core PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+target_compile_options(ups_core PRIVATE ${WARN_FLAGS})
+
 if (BUILD_COVERAGE)
-    target_compile_options(ups_core PRIVATE --coverage -O0 -g)
+    target_compile_options(ups_core PRIVATE ${COVERAGE_COMPILE_FLAGS})
 endif()
 
 
@@ -62,8 +71,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+target_compile_options(${PROJECT_NAME} PRIVATE ${WARN_FLAGS})
+
 if (BUILD_COVERAGE)
-    target_link_options(ups_emulator PRIVATE --coverage)
+    target_link_options(${PROJECT_NAME} PRIVATE ${COVERAGE_LINK_FLAGS})
 endif()
 
 
@@ -93,12 +104,14 @@ if (BUILD_TESTING)
             CXX_EXTENSIONS OFF
         )
 
+        target_compile_options(${TEST_NAME} PRIVATE ${WARN_FLAGS})
+
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
         # Включить Coverage для тестов
         if (BUILD_COVERAGE)
-            target_compile_options(${TEST_NAME} PRIVATE --coverage  -O0 -g)
-            target_link_options(${TEST_NAME} PRIVATE --coverage)
+            target_compile_options(${TEST_NAME} PRIVATE ${COVERAGE_COMPILE_FLAGS})
+            target_link_options(${TEST_NAME} PRIVATE ${COVERAGE_LINK_FLAGS})
         endif()
     endfunction()
 
