@@ -1,17 +1,56 @@
 cmake_minimum_required(VERSION 3.10.0)
 
+# ============================================================
+#                     PROJECT CONFIG
+# ============================================================
 project(ups_emulator)
 
-set(PROJECT_SRC
-    src/main.cpp
+set(PROJECT_INCLUDE_DIR 
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+
+
+# ============================================================
+#               OPTIONS (TESTING, COVERAGE)
+# ============================================================
+option(BUILD_TESTING "Build unit tests" ON)
+option(BUILD_COVERAGE "Enable coverage instrumentation" ON)
+
+
+
+# ============================================================
+#                   UPS CORE LIBRARY
+# ============================================================
+set(UPS_CORE_SRC
     src/ups_model_config.cpp
+    # src/snmp_parser.cpp
+    # src/input_status.cpp
+    # src/output_status.cpp
 )
 
-set(PROJECT_INCLUDES
-   ${CMAKE_SOURCE_DIR}/src
+add_library(ups_core ${UPS_CORE_SRC})
+
+target_include_directories(ups_core PUBLIC
+    ${PROJECT_INCLUDE_DIR}
 )
 
-add_executable(${PROJECT_NAME} ${PROJECT_SRC})
+set_target_properties(ups_core PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+
+
+# ============================================================
+#                   MAIN APPLICATION
+# ============================================================
+add_executable(ups_emulator
+    src/main.cpp
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ups_core)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 11
@@ -19,76 +58,100 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
-# Создаём папку config в build/ если её нет и копируем туда ini-файл
-set(CONFIG_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/config)
-file(MAKE_DIRECTORY ${CONFIG_FOLDER})
-file(COPY ups_models.ini DESTINATION ${CONFIG_FOLDER})
 
 
-set(TESTS_SRC
-    tests/ups_model_config_test.cpp
-    src/ups_model_config.cpp
-)
-
-set(TEST_FILE ups_model_config_test)
-
-add_executable(${TEST_FILE} ${TESTS_SRC})
-target_include_directories(${TEST_FILE} PRIVATE ${PROJECT_INCLUDES})
-target_link_libraries(${TEST_FILE} GTest::gtest_main)
-set_target_properties(${TEST_FILE} PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
-
-# ********************** Подключение GoogleTest *************
-add_subdirectory(${CMAKE_SOURCE_DIR}/tests/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest)
-target_link_libraries(${PROJECT_NAME} GTest::gtest_main)
-
-enable_testing()
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
-message(STATUS "GTest added for target: ${PROJECT_NAME}")
-
-option(BUILD_COVERAGE "Whether to build coverage or not" ON)
+# ============================================================
+#            COVERAGE FLAGS (local to core + tests)
+# ============================================================
 if (BUILD_COVERAGE)
-    # get_filename_component(PROJECT_SRC_ABS "${PROJECT_SRC}" REALPATH)
+    message(STATUS "Coverage enabled")
+    target_compile_options(${PROJECT_NAME} PRIVATE --coverage -O0 -g)
+    target_link_options(${PROJECT_NAME} PRIVATE --coverage)
+endif()
 
-    # === Файлы покрытия ===
-    set(COVERAGE_FILES
-        "${CMAKE_SOURCE_DIR}/src/ups_model_config.cpp"
+
+
+# ============================================================
+#                     BUILD TESTS (optional)
+# ============================================================
+if (BUILD_TESTING)
+
+    enable_testing()
+
+    # ===== GTest =====
+    add_subdirectory(${CMAKE_SOURCE_DIR}/tests/googletest)
+
+    # ===== Функция добавления тестов =====
+    function(add_ups_test TEST_NAME)
+        add_executable(${TEST_NAME} ${ARGN})
+
+        target_link_libraries(${TEST_NAME} PRIVATE
+            ups_core
+            GTest::gtest_main
+        )
+
+        set_target_properties(${TEST_NAME} PROPERTIES
+            CXX_STANDARD 11
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+
+        add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+
+        # Включить Coverage для тестов
+        if (BUILD_COVERAGE)
+            target_compile_options(${TEST_NAME} PRIVATE --coverage  -O0 -g)
+            target_link_options(${TEST_NAME} PRIVATE --coverage)
+        endif()
+    endfunction()
+
+    # ===== Добавление тестов =====
+    add_ups_test(ups_model_config_test
+        tests/ups_model_config_test.cpp
     )
 
-    target_include_directories(${TEST_FILE} PRIVATE ${TEST_INCLUDE})
+endif()
 
-    target_compile_options(${TEST_FILE} PRIVATE --coverage)
-    target_link_options(${TEST_FILE} PRIVATE --coverage)
 
-    # === Пути ===
-    set(COVERAGE_LIST_FILE   "${CMAKE_BINARY_DIR}/coverage_file_list.txt")
+
+# ============================================================
+#               COVERAGE FILE LIST + SCRIPT
+# ============================================================
+if (BUILD_COVERAGE)
+
+    # Получаем фактические cpp-файлы библиотеки
+    get_target_property(UPS_CORE_SOURCES ups_core SOURCES)
+
+    # Создаем список файлов для coverage
+    set(COVERAGE_LIST_FILE "${CMAKE_BINARY_DIR}/coverage_file_list.txt")
+    file(WRITE ${COVERAGE_LIST_FILE} "")
+    foreach(f ${UPS_CORE_SOURCES})
+        get_filename_component(abs_f "${CMAKE_SOURCE_DIR}/${f}" REALPATH)
+        file(APPEND ${COVERAGE_LIST_FILE} "${abs_f}\n")
+    endforeach()
+
+    # Генерация coverage-скрипта
     set(COVERAGE_SCRIPT_NAME "run_coverage.sh")
     set(COVERAGE_SCRIPT_IN   "${CMAKE_CURRENT_SOURCE_DIR}/${COVERAGE_SCRIPT_NAME}.in")
     set(COVERAGE_SCRIPT      "${CMAKE_CURRENT_BINARY_DIR}/${COVERAGE_SCRIPT_NAME}")
-
-
-    # === Сохраняем список файлов ===
-    file(WRITE ${COVERAGE_LIST_FILE} "")
-    foreach(f ${COVERAGE_FILES})
-        file(APPEND ${COVERAGE_LIST_FILE} "${f}\n")
-    endforeach()
-
-    # === Генерируем скрипт ===
     configure_file(
-        "${COVERAGE_SCRIPT_IN}"
-        "${COVERAGE_SCRIPT}"
+        ${COVERAGE_SCRIPT_IN}
+        ${COVERAGE_SCRIPT}
         @ONLY
     )
-
     file(CHMOD ${COVERAGE_SCRIPT}
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                     GROUP_READ GROUP_EXECUTE
                     WORLD_READ WORLD_EXECUTE)
 
     message(STATUS "Coverage script generated: ${COVERAGE_SCRIPT}")
-
 endif()
 
+
+
+# ============================================================
+#                COPY CONFIG FILES TO BUILD/
+# ============================================================
+set(CONFIG_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/config)
+file(MAKE_DIRECTORY ${CONFIG_FOLDER})
+file(COPY ${CMAKE_SOURCE_DIR}/ups_models.ini DESTINATION ${CONFIG_FOLDER})
