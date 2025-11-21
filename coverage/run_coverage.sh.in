@@ -1,0 +1,30 @@
+#!/bin/bash
+set -e
+
+echo "Running tests..."
+ctest --output-on-failure
+
+echo "Capturing raw coverage..."
+lcov --capture --directory . \
+     --output-file coverage_raw.info \
+     --ignore-errors mismatch
+
+echo "Collecting coverage file list..."
+args=()
+while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    args+=("$f")
+done < "@COVERAGE_LIST_FILE@"
+
+echo "Filtering only project sources..."
+lcov --extract coverage_raw.info \
+     "${args[@]}" \
+     --output-file coverage.info \
+     --ignore-errors unused \
+     --ignore-errors mismatch
+
+echo "Generating HTML report..."
+genhtml coverage.info --output-directory out --flat
+
+echo "Opening report..."
+xdg-open out/index.html
