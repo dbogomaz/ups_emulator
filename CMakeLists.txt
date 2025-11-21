@@ -128,7 +128,7 @@ endif()
 #               ACTIVATE COVERAGE SUBSYSTEM
 # ============================================================
 if (BUILD_COVERAGE)
-    add_subdirectory(coverage)
+    add_subdirectory(tests/coverage)
 endif()
 
 
