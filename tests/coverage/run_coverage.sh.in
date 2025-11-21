@@ -1,32 +1,86 @@
 #!/bin/bash
 set -e
 
+RED="\e[31m"
+GREEN="\e[32m"
+BLUE="\e[34m"
+YELLOW="\e[33m"
+CLEAR="\e[0m"
+
+# ---- Список подавляемых предупреждений ----
+SUPPRESS_PATTERNS=(
+    "Possible precedence problem"
+    "Duplicate specification"
+    "mismatched end line"
+#     "unexpected end"
+#     "consider using"
+#     "unexecuted block"
+#     "warning:"
+    "Excluding "
+    "Removed "
+)
+
+# ---- Функция фильтрации вывода ----
+filter_output() {
+    local line
+    while IFS= read -r line; do
+        local skip=0
+        for pat in "${SUPPRESS_PATTERNS[@]}"; do
+            [[ "$line" == *"$pat"* ]] && skip=1 && break
+        done
+        (( skip == 0 )) && echo "$line"
+    done
+}
+
 cd "$(dirname "$0")"
 
-echo "Running tests..."
+
+
+echo -e "${BLUE}===> Running unit tests...${CLEAR}"
 ctest --output-on-failure
 
-echo "Capturing raw coverage..."
+
+
+echo -e "${BLUE}===> Capturing raw coverage...${CLEAR}"
+
+# ---- Выполняем lcov, фильтруем вывод ----
 lcov --capture --directory . \
      --output-file coverage_raw.info \
-     --ignore-errors mismatch
+     --ignore-errors mismatch,source,empty,gcov \
+     2>&1 | filter_output
 
-echo "Collecting coverage file list..."
+
+
+echo -e "${BLUE}===> Collecting coverage file list...${CLEAR}"
+PROJECT_ROOT="$(readlink -f ..)"    # корень проекта
 args=()
+short_list=()
 while IFS= read -r f; do
     [[ -z "$f" ]] && continue
-    args+=("$f")
+    # Преобразуем абсолютный путь → относительный
+    rel="${f#"${PROJECT_ROOT}"/}"
+    args+=("$f")          # полный путь — нужен для lcov
+    short_list+=("$rel")  # относительный — для красивого вывода
 done < "@COVERAGE_LIST_FILE@"
+# Показываем относительные пути
+printf '  %s\n' "${short_list[@]}"
 
-echo "Filtering only project sources..."
+
+
+echo -e "${BLUE}===> Filtering coverage (project sources only)...${CLEAR}"
 lcov --extract coverage_raw.info \
      "${args[@]}" \
      --output-file coverage.info \
      --ignore-errors unused \
-     --ignore-errors mismatch
+     --ignore-errors mismatch \
+     2>&1 | filter_output
 
-echo "Generating HTML report..."
+
+
+echo -e "${BLUE}===> Generating HTML report...${CLEAR}"
 genhtml coverage.info --output-directory out --flat
 
-echo "Opening report..."
-xdg-open out/index.html
+
+
+echo -e "${GREEN}===> Coverage report generated: out/index.html ${CLEAR}"
+xdg-open out/index.html >/dev/null 2>&1 || true
