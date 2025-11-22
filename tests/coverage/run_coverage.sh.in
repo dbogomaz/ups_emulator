@@ -59,6 +59,7 @@ capture_coverage() {
     lcov --capture --directory . \
         --output-file coverage_raw.info \
         --ignore-errors mismatch,source,empty,gcov,inconsistent,unsupported,format \
+        --quiet \
         2>&1 | filter_output || true
 }
 
@@ -86,13 +87,14 @@ filter_coverage() {
         "${args[@]}" \
         --output-file coverage.info \
         --ignore-errors unused,mismatch \
+        --quiet \
         2>&1 | filter_output
 }
 
 # ---- Генерация HTML отчета ----
 generate_html() {
     log_section "Generating HTML report..."
-    genhtml coverage.info --output-directory out --flat
+    genhtml coverage.info --output-directory out --flat --quiet
 }
 
 # ---- Открытие HTML отчета в браузере ----
