@@ -1,21 +1,22 @@
 #!/bin/bash
 set -e
 
-RED="\e[31m"
-GREEN="\e[32m"
-BLUE="\e[34m"
-YELLOW="\e[33m"
-CLEAR="\e[0m"
+RED="\033[31m"
+GREEN="\033[32m"
+BLUE="\033[34m"
+YELLOW="\033[33m"
+CLEAR="\033[0m"
 
 # ---- Список подавляемых предупреждений ----
 SUPPRESS_PATTERNS=(
     "Possible precedence problem"
     "Duplicate specification"
     "mismatched end line"
-#     "unexpected end"
-#     "consider using"
-#     "unexecuted block"
-#     "warning:"
+    "unsupported"
+    "format"
+    "inconsistent"
+    "(empty) no data generated"
+    "use \"lcov --ignore-errors empty"
     "Excluding "
     "Removed "
 )
@@ -36,22 +37,21 @@ cd "$(dirname "$0")"
 
 
 
-echo -e "${BLUE}===> Running unit tests...${CLEAR}"
+printf "${BLUE}===> Running unit tests...\n${CLEAR}"
 ctest --output-on-failure
 
 
 
-echo -e "${BLUE}===> Capturing raw coverage...${CLEAR}"
-
+printf "${BLUE}===> Capturing raw coverage...\n${CLEAR}"
 # ---- Выполняем lcov, фильтруем вывод ----
 lcov --capture --directory . \
      --output-file coverage_raw.info \
-     --ignore-errors mismatch,source,empty,gcov \
-     2>&1 | filter_output
+     --ignore-errors mismatch,source,empty,gcov,inconsistent,unsupported,format \
+     2>&1 | filter_output || true
 
 
 
-echo -e "${BLUE}===> Collecting coverage file list...${CLEAR}"
+printf "${BLUE}===> Collecting coverage file list...\n${CLEAR}"
 PROJECT_ROOT="$(readlink -f ..)"    # корень проекта
 args=()
 short_list=()
@@ -67,7 +67,7 @@ printf '  %s\n' "${short_list[@]}"
 
 
 
-echo -e "${BLUE}===> Filtering coverage (project sources only)...${CLEAR}"
+printf "${BLUE}===> Filtering coverage (project sources only)...\n${CLEAR}"
 lcov --extract coverage_raw.info \
      "${args[@]}" \
      --output-file coverage.info \
@@ -77,10 +77,14 @@ lcov --extract coverage_raw.info \
 
 
 
-echo -e "${BLUE}===> Generating HTML report...${CLEAR}"
+printf "${BLUE}===> Generating HTML report...\n${CLEAR}"
 genhtml coverage.info --output-directory out --flat
 
 
 
-echo -e "${GREEN}===> Coverage report generated: out/index.html ${CLEAR}"
-xdg-open out/index.html >/dev/null 2>&1 || true
+printf "${GREEN}===> Coverage report generated: out/index.html\n${CLEAR}"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    open out/index.html >/dev/null 2>&1 || true
+else
+    xdg-open out/index.html >/dev/null 2>&1 || true
+fi
