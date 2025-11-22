@@ -4,7 +4,7 @@ set -e
 # ---- Функция установки конфигурации ----
 set_config() {
     # ---- Функция вывода заголовков секций ----
-    section() {
+    log_section() {
         local BLUE="\033[34m"
         local CLEAR="\033[0m"
         printf "%b===> %s%b\n" "$BLUE" "$*" "$CLEAR"
@@ -41,13 +41,13 @@ set_config() {
 
 # ---- Запуск тестов ----
 run_tests() {
-    section "Running unit tests..."
+    log_section "Running unit tests..."
     ctest --output-on-failure
 }
 
 # ---- Сбор сырых данных покрытия ----
 capture_coverage() {
-    section "Capturing raw coverage..."
+    log_section "Capturing raw coverage..."
     # ---- Выполняем lcov, фильтруем вывод ----
     lcov --capture --directory . \
         --output-file coverage_raw.info \
@@ -57,7 +57,7 @@ capture_coverage() {
 
 # ---- Сбор списка файлов проекта для покрытия ----
 collect_files() {
-    section "Collecting coverage file list..."
+    log_section "Collecting coverage file list..."
     PROJECT_ROOT="$(readlink -f ..)"    # корень проекта
     args=()
     short_list=()
@@ -74,24 +74,24 @@ collect_files() {
 
 # ---- Извлечение и фильтрация данных покрытия ----
 filter_coverage() {
-    section "Filtering coverage..."
+    log_section "Filtering coverage..."
     lcov --extract coverage_raw.info \
         "${args[@]}" \
         --output-file coverage.info \
-        --ignore-errors unused \
-        --ignore-errors mismatch \
+        --ignore-errors unused,mismatch \
         2>&1 | filter_output
 }
 
 # ---- Генерация HTML отчета ----
 generate_html() {
-    section "Generating HTML report..."
+    log_section "Generating HTML report..."
     genhtml coverage.info --output-directory out --flat
 }
 
 # ---- Открытие HTML отчета в браузере ----
 open_report() {
-    section "Opening coverage report..."
+    log_section "Opening coverage report..."
+    printf '  %s\n' "out/index.html"
     if [[ "$OSTYPE" == "darwin"* ]]; then
         open out/index.html >/dev/null 2>&1 || true
     else
