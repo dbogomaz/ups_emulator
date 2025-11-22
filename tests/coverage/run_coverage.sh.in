@@ -1,90 +1,112 @@
 #!/bin/bash
 set -e
 
-RED="\033[31m"
-GREEN="\033[32m"
-BLUE="\033[34m"
-YELLOW="\033[33m"
-CLEAR="\033[0m"
+# ---- Функция установки конфигурации ----
+set_config() {
+    # ---- Функция вывода заголовков секций ----
+    section() {
+        local BLUE="\033[34m"
+        local CLEAR="\033[0m"
+        printf "%b===> %s%b\n" "$BLUE" "$*" "$CLEAR"
+    }
 
-# ---- Список подавляемых предупреждений ----
-SUPPRESS_PATTERNS=(
-    "Possible precedence problem"
-    "Duplicate specification"
-    "mismatched end line"
-    "unsupported"
-    "format"
-    "inconsistent"
-    "(empty) no data generated"
-    "use \"lcov --ignore-errors empty"
-    "Excluding "
-    "Removed "
-)
+    # ---- Список подавляемых предупреждений ----
+    SUPPRESS_PATTERNS=(
+        "Possible precedence problem"
+        "Duplicate specification"
+        "mismatched end line"
+        "unsupported"
+        "format"
+        "inconsistent"
+        "(empty) no data generated"
+        "use \"lcov --ignore-errors empty"
+        "Excluding "
+        "Removed "
+    )
 
-# ---- Функция фильтрации вывода ----
-filter_output() {
-    local line
-    while IFS= read -r line; do
-        local skip=0
-        for pat in "${SUPPRESS_PATTERNS[@]}"; do
-            [[ "$line" == *"$pat"* ]] && skip=1 && break
+    # ---- Функция фильтрации вывода ----
+    filter_output() {
+        local line
+        while IFS= read -r line; do
+            local skip=0
+            for pat in "${SUPPRESS_PATTERNS[@]}"; do
+                [[ "$line" == *"$pat"* ]] && skip=1 && break
+            done
+            (( skip == 0 )) && echo "$line"
         done
-        (( skip == 0 )) && echo "$line"
-    done
+    }
+
+    cd "$(dirname "$0")"
 }
 
-cd "$(dirname "$0")"
+# ---- Запуск тестов ----
+run_tests() {
+    section "Running unit tests..."
+    ctest --output-on-failure
+}
 
+# ---- Сбор сырых данных покрытия ----
+capture_coverage() {
+    section "Capturing raw coverage..."
+    # ---- Выполняем lcov, фильтруем вывод ----
+    lcov --capture --directory . \
+        --output-file coverage_raw.info \
+        --ignore-errors mismatch,source,empty,gcov,inconsistent,unsupported,format \
+        2>&1 | filter_output || true
+}
 
+# ---- Сбор списка файлов проекта для покрытия ----
+collect_files() {
+    section "Collecting coverage file list..."
+    PROJECT_ROOT="$(readlink -f ..)"    # корень проекта
+    args=()
+    short_list=()
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        # Преобразуем абсолютный путь → относительный
+        rel="${f#"${PROJECT_ROOT}"/}"
+        args+=("$f")          # полный путь — нужен для lcov
+        short_list+=("$rel")  # относительный — для красивого вывода
+    done < "@COVERAGE_LIST_FILE@"
+    # Показываем относительные пути
+    printf '  %s\n' "${short_list[@]}"
+}
 
-printf "${BLUE}===> Running unit tests...\n${CLEAR}"
-ctest --output-on-failure
+# ---- Извлечение и фильтрация данных покрытия ----
+filter_coverage() {
+    section "Filtering coverage..."
+    lcov --extract coverage_raw.info \
+        "${args[@]}" \
+        --output-file coverage.info \
+        --ignore-errors unused \
+        --ignore-errors mismatch \
+        2>&1 | filter_output
+}
 
+# ---- Генерация HTML отчета ----
+generate_html() {
+    section "Generating HTML report..."
+    genhtml coverage.info --output-directory out --flat
+}
 
+# ---- Открытие HTML отчета в браузере ----
+open_report() {
+    section "Opening coverage report..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        open out/index.html >/dev/null 2>&1 || true
+    else
+        xdg-open out/index.html >/dev/null 2>&1 || true
+    fi
+}
 
-printf "${BLUE}===> Capturing raw coverage...\n${CLEAR}"
-# ---- Выполняем lcov, фильтруем вывод ----
-lcov --capture --directory . \
-     --output-file coverage_raw.info \
-     --ignore-errors mismatch,source,empty,gcov,inconsistent,unsupported,format \
-     2>&1 | filter_output || true
+main() {
+    set_config
+    run_tests
+    capture_coverage
+    collect_files
+    filter_coverage
+    generate_html
+    open_report
+}
 
-
-
-printf "${BLUE}===> Collecting coverage file list...\n${CLEAR}"
-PROJECT_ROOT="$(readlink -f ..)"    # корень проекта
-args=()
-short_list=()
-while IFS= read -r f; do
-    [[ -z "$f" ]] && continue
-    # Преобразуем абсолютный путь → относительный
-    rel="${f#"${PROJECT_ROOT}"/}"
-    args+=("$f")          # полный путь — нужен для lcov
-    short_list+=("$rel")  # относительный — для красивого вывода
-done < "@COVERAGE_LIST_FILE@"
-# Показываем относительные пути
-printf '  %s\n' "${short_list[@]}"
-
-
-
-printf "${BLUE}===> Filtering coverage (project sources only)...\n${CLEAR}"
-lcov --extract coverage_raw.info \
-     "${args[@]}" \
-     --output-file coverage.info \
-     --ignore-errors unused \
-     --ignore-errors mismatch \
-     2>&1 | filter_output
-
-
-
-printf "${BLUE}===> Generating HTML report...\n${CLEAR}"
-genhtml coverage.info --output-directory out --flat
-
-
-
-printf "${GREEN}===> Coverage report generated: out/index.html\n${CLEAR}"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    open out/index.html >/dev/null 2>&1 || true
-else
-    xdg-open out/index.html >/dev/null 2>&1 || true
-fi
+main "$@"
