@@ -3,6 +3,9 @@ set -e
 
 # ---- Функция установки конфигурации ----
 set_config() {
+    DEBUG=0
+    [[ "$1" == "--debug" || "$1" == "-g" ]] && DEBUG=1
+
     # ---- Функция вывода заголовков секций ----
     log_section() {
         local BLUE="\033[34m"
@@ -26,6 +29,10 @@ set_config() {
 
     # ---- Функция фильтрации вывода ----
     filter_output() {
+        if (( DEBUG == 1 )); then
+            cat
+            return
+        fi
         local line
         while IFS= read -r line; do
             local skip=0
@@ -100,7 +107,7 @@ open_report() {
 }
 
 main() {
-    set_config
+    set_config "$@"
     run_tests
     capture_coverage
     collect_files
