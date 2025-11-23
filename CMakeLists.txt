@@ -16,6 +16,7 @@ set(WARN_FLAGS
     -Wpedantic
 )
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
 # ============================================================
@@ -137,6 +138,6 @@ endif()
 # ============================================================
 #                COPY CONFIG FILES TO BUILD/
 # ============================================================
-set(CONFIG_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/config)
+set(CONFIG_FOLDER ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config)
 file(MAKE_DIRECTORY ${CONFIG_FOLDER})
 file(COPY ${CMAKE_SOURCE_DIR}/ups_models.ini DESTINATION ${CONFIG_FOLDER})

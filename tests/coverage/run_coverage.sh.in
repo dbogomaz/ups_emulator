@@ -43,7 +43,10 @@ set_config() {
         done
     }
 
-    cd "$(dirname "$0")"
+    SCRIPT_DIR="$(readlink -f "$(dirname "$0")")" # build/bin
+    BUILD_DIR="$(readlink -f "${SCRIPT_DIR}/..")" # build
+
+    cd "${BUILD_DIR}"
 }
 
 # ---- Запуск тестов ----
