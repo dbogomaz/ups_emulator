@@ -1,52 +1,12 @@
 #include "ups_model_config.h"
+
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <unistd.h>
-#include <limits.h>
-#include <algorithm>
 #include <map>
 
-// -------------------
-// trim helper
-// -------------------
-static inline std::string trim(const std::string& s)
-{
-    size_t start = s.find_first_not_of(" \t\r\n");
-    if (start == std::string::npos) return "";
-    size_t end = s.find_last_not_of(" \t\r\n");
-    return s.substr(start, end - start + 1);
-}
-
-// -------------------
-// Получение каталога бинарника
-// -------------------
-std::string UpsModelConfig::getBinaryDir() const
-{
-    char buf[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
-    if (len == -1)
-        return ".";
-
-    buf[len] = '\0';
-    std::string path(buf);
-    return path.substr(0, path.find_last_of('/'));
-}
-
-// -------------------
-// Преобразование пути
-// path может быть:
-//   "/abs/path/file.ini" → абсолютный
-//   "config/ups_models.ini" → относительный, тогда ищем около бинарника
-// -------------------
-std::string UpsModelConfig::resolvePath(const std::string& path) const
-{
-    if (!path.empty() && path[0] == '/')
-        return path; // абсолютный путь
-
-    std::string binDir = getBinaryDir();
-    return binDir + "/" + path;
-}
+#include "utils/string_utils.h"
+#include "utils/fs_utils.h"
 
 // -------------------
 // Основная загрузка INI
@@ -58,7 +18,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
     bypassValues.clear();
     oids = UpsOids{}; // сброс OID полей
 
-    std::string fullPath = resolvePath(path);
+    std::string fullPath = utils::resolvePath(path);
     std::cout << ">>> Loading config from file: " << fullPath << "\n";
 
     std::ifstream file(fullPath);
@@ -84,7 +44,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
     };
 
     while (std::getline(file, line)) {
-        line = trim(line);
+        line = utils::trim(line);
         if (line.empty() || line[0] == '#')
             continue;
 
@@ -103,8 +63,8 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
         if (eq == std::string::npos)
             continue;
 
-        std::string key = trim(line.substr(0, eq));
-        std::string value = trim(line.substr(eq + 1));
+        std::string key = utils::trim(line.substr(0, eq));
+        std::string value = utils::trim(line.substr(eq + 1));
 
         // 1) modelName — отдельная сущность
         if (key == "modelName") {
@@ -126,7 +86,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
             std::stringstream ss(value);
             std::string part;
             while (std::getline(ss, part, ',')) {
-                part = trim(part);
+                part = utils::trim(part);
                 if (!part.empty()) {
                     try {
                         bypassValues.push_back(std::stoi(part));

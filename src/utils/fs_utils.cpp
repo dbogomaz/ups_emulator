@@ -1,0 +1,75 @@
+#include "fs_utils.h"
+#include <string>
+#include <limits.h>
+#include <unistd.h>
+
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <stdlib.h>
+#endif
+
+namespace utils {
+
+std::string getBinaryDir()
+{
+#if defined(__linux__)
+    // ----- Linux -----
+    char buf[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
+    if (len == -1)
+        return ".";
+
+    buf[len] = '\0';
+    std::string path(buf);
+    return path.substr(0, path.find_last_of('/'));
+
+#elif defined(__APPLE__)
+    // ----- macOS -----
+    char buf[PATH_MAX];
+    uint32_t size = sizeof(buf);
+
+    // 1) Пытаемся писать сразу в локальный массив
+    if (_NSGetExecutablePath(buf, &size) != 0) {
+        // Буфер мал — выделяем вручную
+        char* m = new char[size];
+
+        if (_NSGetExecutablePath(m, &size) != 0) {
+            delete[] m;
+            return ".";
+        }
+
+        std::string path(m);
+        delete[] m;
+
+        // Разрешаем symlink
+        char resolved[PATH_MAX];
+        if (realpath(path.c_str(), resolved) != nullptr)
+            path = resolved;
+
+        return path.substr(0, path.find_last_of('/'));
+    }
+
+    // Если buf поместился
+    std::string path(buf);
+
+    // Разрешаем symlink
+    char resolved[PATH_MAX];
+    if (realpath(path.c_str(), resolved) != nullptr)
+        path = resolved;
+
+    return path.substr(0, path.find_last_of('/'));
+
+#else
+    return ".";
+#endif
+}
+
+std::string resolvePath(const std::string& path)
+{
+    if (!path.empty() && path[0] == '/')
+        return path;
+
+    return getBinaryDir() + "/" + path;
+}
+
+} // namespace utils

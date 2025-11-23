@@ -7,6 +7,7 @@ project(ups_emulator)
 
 set(PROJECT_INCLUDE_DIR 
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/utils
 )
 
 set(WARN_FLAGS
@@ -31,9 +32,9 @@ set(COVERAGE_LINK_FLAGS --coverage)
 # ============================================================
 set(UPS_CORE_SRC
     src/ups_model_config.cpp
-    # src/snmp_parser.cpp
-    # src/input_status.cpp
-    # src/output_status.cpp
+
+    src/utils/fs_utils.cpp
+    src/utils/string_utils.cpp
 )
 
 add_library(ups_core ${UPS_CORE_SRC})
