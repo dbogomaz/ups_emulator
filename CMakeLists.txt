@@ -82,46 +82,10 @@ endif()
 
 
 # ============================================================
-#                     BUILD TESTS (optional)
+#                     ACTIVATE BUILD TESTS
 # ============================================================
 if (BUILD_TESTING)
-
-    enable_testing()
-
-    # ===== GTest =====
-    add_subdirectory(${CMAKE_SOURCE_DIR}/tests/googletest)
-
-    # ===== Функция добавления тестов =====
-    function(add_ups_test TEST_NAME)
-        add_executable(${TEST_NAME} ${ARGN})
-
-        target_link_libraries(${TEST_NAME} PRIVATE
-            ups_core
-            GTest::gtest_main
-        )
-
-        set_target_properties(${TEST_NAME} PROPERTIES
-            CXX_STANDARD 11
-            CXX_STANDARD_REQUIRED ON
-            CXX_EXTENSIONS OFF
-        )
-
-        target_compile_options(${TEST_NAME} PRIVATE ${WARN_FLAGS})
-
-        add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-
-        # Включить Coverage для тестов
-        if (BUILD_COVERAGE)
-            target_compile_options(${TEST_NAME} PRIVATE ${COVERAGE_COMPILE_FLAGS})
-            target_link_options(${TEST_NAME} PRIVATE ${COVERAGE_LINK_FLAGS})
-        endif()
-    endfunction()
-
-    # ===== Добавление тестов =====
-    add_ups_test(ups_model_config_test
-        tests/unit/ups_model_config_test.cpp
-    )
-
+    add_subdirectory(tests)
 endif()
 
 
