@@ -85,6 +85,7 @@ endif()
 #                     ACTIVATE BUILD TESTS
 # ============================================================
 if (BUILD_TESTING)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 

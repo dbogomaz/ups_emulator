@@ -4,7 +4,7 @@
 # ============================================================
 message(STATUS "Configuring BUILD TESTS subsystem")
 
-enable_testing()
+# enable_testing()
 
 # ===== GTest =====
 add_subdirectory(${CMAKE_SOURCE_DIR}/tests/googletest)
