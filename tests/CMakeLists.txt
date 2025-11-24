@@ -2,10 +2,8 @@
 # ============================================================
 #                         BUILD TESTS
 # ============================================================
-message(STATUS "Configuring BUILD TESTS subsystem")
 
-# ===== GTest =====
-add_subdirectory(googletest)
+message(STATUS "Configuring BUILD TESTS subsystem")
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/add_ups_test.cmake)
 
@@ -14,9 +12,8 @@ add_ups_test(ups_model_config_test
     unit/ups_model_config_test.cpp
 )
 
-# ============================================================
-#               ACTIVATE COVERAGE SUBSYSTEM
-# ============================================================
+add_subdirectory(googletest)
+
 if (BUILD_COVERAGE)
     add_subdirectory(coverage)
 endif()
