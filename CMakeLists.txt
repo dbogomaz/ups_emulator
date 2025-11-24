@@ -92,15 +92,6 @@ endif()
 
 
 # ============================================================
-#               ACTIVATE COVERAGE SUBSYSTEM
-# ============================================================
-if (BUILD_COVERAGE)
-    add_subdirectory(tests/coverage)
-endif()
-
-
-
-# ============================================================
 #                COPY CONFIG FILES TO BUILD/
 # ============================================================
 set(CONFIG_FOLDER ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config)
