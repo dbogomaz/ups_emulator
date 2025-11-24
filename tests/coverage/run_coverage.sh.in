@@ -1,10 +1,10 @@
 #!/bin/bash
-set -e
+set -eEuo pipefail
 
 # ---- Функция установки конфигурации ----
 set_config() {
     DEBUG=0
-    [[ "$1" == "--debug" || "$1" == "-g" ]] && DEBUG=1
+    [[ "${1-}" == "--debug" || "${1-}" == "-g" ]] && DEBUG=1
 
     # ---- Функция вывода заголовков секций ----
     log_section() {
@@ -91,7 +91,7 @@ filter_coverage() {
         --output-file coverage.info \
         --ignore-errors unused,mismatch \
         --quiet \
-        2>&1 | filter_output
+        2>&1 | filter_output || true
 }
 
 # ---- Генерация HTML отчета ----
