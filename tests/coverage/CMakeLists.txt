@@ -1,4 +1,4 @@
-# @file test/coverage/CMakeLists.txt
+# @file tests/coverage/CMakeLists.txt
 # ============================================================
 #                    COVERAGE SUBSYSTEM
 # ============================================================
