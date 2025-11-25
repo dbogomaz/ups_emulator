@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+// Список OID полей для UPS
 struct UpsOids {
     std::string modelNameOID;
     std::string inputVoltageOID;
@@ -17,22 +18,19 @@ struct UpsOids {
 
 class UpsModelConfig {
 public:
-    std::string modelName;
-    UpsOids oids;
-    std::vector<int> bypassValues;
-
-    // описание последней ошибки
-    std::string lastError;
-
     // загрузка конфигурации из файла path (абсолютного или относительного)
     bool load(const std::string& path, const std::string& section);
 
-private:
-    // чтение фактического пути (если относительный — преобразуется в путь рядом с бинарником)
-    std::string resolvePath(const std::string& path) const;
+    const std::string& modelName() const;
+    const UpsOids& oids() const;
+    const std::vector<int>& bypassValues() const;
+    const std::string& lastError() const;
 
-    // путь к каталогу бинарника
-    std::string getBinaryDir() const;
+private:
+    std::string m_modelName{};
+    UpsOids m_oids{};
+    std::vector<int> m_bypassValues{};
+    std::string m_lastError{};
 
     // проверка обязательных полей
     bool validate(const std::string& section);
