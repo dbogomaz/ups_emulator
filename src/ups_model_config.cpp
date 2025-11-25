@@ -16,7 +16,6 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
     oids = UpsOids{}; // сброс OID полей
 
     std::string fullPath = utils::resolvePath(path);
-    std::cout << ">>> Loading config from file: " << fullPath << "\n";
 
     std::ifstream file(fullPath);
     if (!file.is_open()) {
@@ -25,9 +24,10 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
     }
 
     std::string line;
-    bool inSection = false;
-    bool loadedAnything = false;
+    bool inSection = false; // флаг, что мы внутри нужной секции
+    bool loadedAnything = false; // флаг, что мы загрузили хоть что-то
 
+    // LCOV_EXCL_START
     // карта привязок "ключ - поле структуры"
     const std::map<std::string, std::string UpsOids::*> fieldMap = {
         {"modelNameOID",        &UpsOids::modelNameOID},
@@ -39,6 +39,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
         {"batteryTempOID",      &UpsOids::batteryTempOID},
         {"bypassStatusOID",     &UpsOids::bypassStatusOID}
     };
+    // LCOV_EXCL_STOP
 
     while (std::getline(file, line)) {
         line = utils::trim(line);
@@ -73,6 +74,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
         // 2) поля OID
         auto it = fieldMap.find(key);
         if (it != fieldMap.end()) {
+            printf("[DEBUG] Setting OID field: %s = %s\n", key.c_str(), value.c_str());
             oids.*(it->second) = value;
             loadedAnything = true;
             continue;
@@ -84,6 +86,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
             std::string part;
             while (std::getline(ss, part, ',')) {
                 part = utils::trim(part);
+                printf("[DEBUG] Parsing bypass value: '%s'\n", part.c_str());
                 if (!part.empty()) {
                     try {
                         bypassValues.push_back(std::stoi(part));

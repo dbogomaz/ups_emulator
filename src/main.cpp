@@ -6,6 +6,7 @@ int main()
     UpsModelConfig cfg;
     if (!cfg.load("config/ups_models.ini", "APC")) {
         std::cout << "Failed to load config\n";
+        std::cout << "Error: " << cfg.lastError << "\n";
         return 1;
     }
 

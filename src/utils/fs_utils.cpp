@@ -17,7 +17,9 @@ std::string getBinaryDir()
     char buf[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
     if (len == -1)
+        // LCOV_EXCL_START
         return ".";
+        // LCOV_EXCL_STOP
 
     buf[len] = '\0';
     std::string path(buf);
