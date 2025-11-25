@@ -1,50 +1,47 @@
 #include "ups_model_config.h"
 
 #include <fstream>
-#include <sstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 
-#include "utils/string_utils.h"
 #include "utils/fs_utils.h"
+#include "utils/string_utils.h"
 
-bool UpsModelConfig::load(const std::string& path, const std::string& section)
-{
-    lastError.clear();
-    modelName.clear();
-    bypassValues.clear();
-    oids = UpsOids{}; // сброс OID полей
+bool UpsModelConfig::load(const std::string& path, const std::string& section) {
+    m_lastError.clear();
+    m_modelName.clear();
+    m_bypassValues.clear();
+    m_oids = UpsOids{};  // сброс OID полей
 
     std::string fullPath = utils::resolvePath(path);
 
     std::ifstream file(fullPath);
     if (!file.is_open()) {
-        lastError = "Cannot open file: " + fullPath;
+        m_lastError = "Cannot open file: " + fullPath;
         return false;
     }
 
     std::string line;
-    bool inSection = false; // флаг, что мы внутри нужной секции
-    bool loadedAnything = false; // флаг, что мы загрузили хоть что-то
+    bool inSection = false;       // флаг, что мы внутри нужной секции
+    bool loadedAnything = false;  // флаг, что мы загрузили хоть что-то
 
     // LCOV_EXCL_START
     // карта привязок "ключ - поле структуры"
     const std::map<std::string, std::string UpsOids::*> fieldMap = {
-        {"modelNameOID",        &UpsOids::modelNameOID},
-        {"inputVoltageOID",     &UpsOids::inputVoltageOID},
-        {"inputFreqOID",        &UpsOids::inputFreqOID},
-        {"outputVoltageOID",    &UpsOids::outputVoltageOID},
-        {"batteryStatusOID",    &UpsOids::batteryStatusOID},
-        {"chargeRemainingOID",  &UpsOids::chargeRemainingOID},
-        {"batteryTempOID",      &UpsOids::batteryTempOID},
-        {"bypassStatusOID",     &UpsOids::bypassStatusOID}
-    };
+        {"modelNameOID", &UpsOids::modelNameOID},
+        {"inputVoltageOID", &UpsOids::inputVoltageOID},
+        {"inputFreqOID", &UpsOids::inputFreqOID},
+        {"outputVoltageOID", &UpsOids::outputVoltageOID},
+        {"batteryStatusOID", &UpsOids::batteryStatusOID},
+        {"chargeRemainingOID", &UpsOids::chargeRemainingOID},
+        {"batteryTempOID", &UpsOids::batteryTempOID},
+        {"bypassStatusOID", &UpsOids::bypassStatusOID}};
     // LCOV_EXCL_STOP
 
     while (std::getline(file, line)) {
         line = utils::trim(line);
-        if (line.empty() || line[0] == '#')
-            continue;
+        if (line.empty() || line[0] == '#') continue;
 
         // секция
         if (line.front() == '[' && line.back() == ']') {
@@ -53,20 +50,18 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
             continue;
         }
 
-        if (!inSection)
-            continue;
+        if (!inSection) continue;
 
         // key=value
         size_t eq = line.find('=');
-        if (eq == std::string::npos)
-            continue;
+        if (eq == std::string::npos) continue;
 
         std::string key = utils::trim(line.substr(0, eq));
         std::string value = utils::trim(line.substr(eq + 1));
 
         // 1) modelName — отдельная сущность
         if (key == "modelName") {
-            modelName = value;
+            m_modelName = value;
             loadedAnything = true;
             continue;
         }
@@ -74,8 +69,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
         // 2) поля OID
         auto it = fieldMap.find(key);
         if (it != fieldMap.end()) {
-            printf("[DEBUG] Setting OID field: %s = %s\n", key.c_str(), value.c_str());
-            oids.*(it->second) = value;
+            m_oids.*(it->second) = value;
             loadedAnything = true;
             continue;
         }
@@ -86,12 +80,11 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
             std::string part;
             while (std::getline(ss, part, ',')) {
                 part = utils::trim(part);
-                printf("[DEBUG] Parsing bypass value: '%s'\n", part.c_str());
                 if (!part.empty()) {
                     try {
-                        bypassValues.push_back(std::stoi(part));
+                        m_bypassValues.push_back(std::stoi(part));
                     } catch (...) {
-                        lastError = "Invalid integer in bypassStatusAllowed: '" + part + "'";
+                        m_lastError = "Invalid integer in bypassStatusAllowed: '" + part + "'";
                         return false;
                     }
                 }
@@ -99,51 +92,55 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
             loadedAnything = true;
             continue;
         }
-
-        // 4) неизвестный ключ
-        std::cout << "WARNING: Unknown key in section [" << section << "]: " << key << "\n";
     }
 
     if (!loadedAnything) {
-        lastError = "Section [" + section + "] was not found or empty in: " + fullPath;
+        m_lastError = "Section [" + section + "] was not found or empty in: " + fullPath;
         return false;
     }
 
     // обязательная проверка всех полей
-    if (!validate(section))
-        return false;
+    if (!validate(section)) return false;
 
     return true;
 }
 
-bool UpsModelConfig::validate(const std::string& section)
-{
-    if (modelName.empty()) {
-        lastError = "Missing required field \"modelName\" in section [" + section + "]";
+bool UpsModelConfig::validate(const std::string& section) {
+    if (m_modelName.empty()) {
+        m_lastError = "Missing required field \"modelName\" in section [" + section + "]";
         return false;
     }
 
     auto check = [&](const std::string& value, const std::string& name) {
         if (value.empty()) {
-            lastError = "Missing required OID field \"" + name + "\" in section [" + section + "]";
+            m_lastError =
+                "Missing required OID field \"" + name + "\" in section [" + section + "]";
             return false;
         }
         return true;
     };
 
-    if (!check(oids.modelNameOID,       "modelNameOID")) return false;
-    if (!check(oids.inputVoltageOID,    "inputVoltageOID")) return false;
-    if (!check(oids.inputFreqOID,       "inputFreqOID")) return false;
-    if (!check(oids.outputVoltageOID,   "outputVoltageOID")) return false;
-    if (!check(oids.batteryStatusOID,   "batteryStatusOID")) return false;
-    if (!check(oids.chargeRemainingOID, "chargeRemainingOID")) return false;
-    if (!check(oids.batteryTempOID,     "batteryTempOID")) return false;
-    if (!check(oids.bypassStatusOID,    "bypassStatusOID")) return false;
+    if (!check(m_oids.modelNameOID, "modelNameOID")) return false;
+    if (!check(m_oids.inputVoltageOID, "inputVoltageOID")) return false;
+    if (!check(m_oids.inputFreqOID, "inputFreqOID")) return false;
+    if (!check(m_oids.outputVoltageOID, "outputVoltageOID")) return false;
+    if (!check(m_oids.batteryStatusOID, "batteryStatusOID")) return false;
+    if (!check(m_oids.chargeRemainingOID, "chargeRemainingOID")) return false;
+    if (!check(m_oids.batteryTempOID, "batteryTempOID")) return false;
+    if (!check(m_oids.bypassStatusOID, "bypassStatusOID")) return false;
 
-    if (bypassValues.empty()) {
-        lastError = "Missing required list \"bypassStatusAllowed\" in section [" + section + "]";
+    if (m_bypassValues.empty()) {
+        m_lastError = "Missing required list \"bypassStatusAllowed\" in section [" + section + "]";
         return false;
     }
 
     return true;
 }
+
+const std::string& UpsModelConfig::modelName() const { return m_modelName; }
+
+const UpsOids& UpsModelConfig::oids() const { return m_oids; }
+
+const std::vector<int>& UpsModelConfig::bypassValues() const { return m_bypassValues; }
+
+const std::string& UpsModelConfig::lastError() const { return m_lastError; }
