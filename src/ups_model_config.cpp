@@ -8,9 +8,6 @@
 #include "utils/string_utils.h"
 #include "utils/fs_utils.h"
 
-// -------------------
-// Основная загрузка INI
-// -------------------
 bool UpsModelConfig::load(const std::string& path, const std::string& section)
 {
     lastError.clear();
@@ -116,9 +113,6 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section)
     return true;
 }
 
-// -------------------
-// Проверка обязательных полей
-// -------------------
 bool UpsModelConfig::validate(const std::string& section)
 {
     if (modelName.empty()) {

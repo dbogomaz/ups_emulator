@@ -28,12 +28,6 @@ public:
     bool load(const std::string& path, const std::string& section);
 
 private:
-    // чтение фактического пути (если относительный — преобразуется в путь рядом с бинарником)
-    std::string resolvePath(const std::string& path) const;
-
-    // путь к каталогу бинарника
-    std::string getBinaryDir() const;
-
     // проверка обязательных полей
     bool validate(const std::string& section);
 };
