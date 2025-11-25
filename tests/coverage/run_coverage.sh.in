@@ -16,15 +16,7 @@ set_config() {
     # ---- Список подавляемых предупреждений ----
     SUPPRESS_PATTERNS=(
         "Possible precedence problem"
-        "Duplicate specification"
-        "mismatched end line"
-        "unsupported"
-        "format"
-        "inconsistent"
-        "(empty) no data generated"
-        "use \"lcov --ignore-errors empty"
-        "Excluding "
-        "Removed "
+        "geninfo"
     )
 
     # ---- Функция фильтрации вывода ----
