@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "ups_model_config.h"
 
+const std::string dataDir = std::string(TEST_DATA_DIR) + "/ups_model_config";
+
 // Успешная загрузка секции APC
 TEST(UpsModelConfigTest, LoadAPCSuccess) {
     UpsModelConfig cfg;
@@ -74,7 +76,7 @@ TEST(UpsModelConfigTest, SectionNotFound) {
 // Отсутствующее обязательное поле OID
 TEST(UpsModelConfigTest, MissingRequiredOID) {
     UpsModelConfig cfg;
-    std::string path = std::string(TEST_DATA_DIR) + "/missing_oid.ini";
+    std::string path = dataDir + "/missing_oid.ini";
     bool ok = cfg.load(path, "APC");
 
     // Ожидаем ошибку
@@ -90,7 +92,7 @@ TEST(UpsModelConfigTest, MissingRequiredOID) {
 // Некорректные значения bypassStatusAllowed
 TEST(UpsModelConfigTest, InvalidBypassValues) {
     UpsModelConfig cfg;
-    std::string path = std::string(TEST_DATA_DIR) + "/bad_bypass.ini";
+    std::string path = dataDir + "/bad_bypass.ini";
     bool ok = cfg.load(path, "APC");
 
     // Должен вернуть false
@@ -104,7 +106,7 @@ TEST(UpsModelConfigTest, InvalidBypassValues) {
 // Параметр без знака равенства
 TEST(UpsModelConfigTest, LineWithoutEqualIsIgnored) {
     UpsModelConfig cfg;
-    std::string path = std::string(TEST_DATA_DIR) + "/no_equal.ini";
+    std::string path = dataDir + "/no_equal.ini";
 
     bool ok = cfg.load(path, "APC");
     EXPECT_TRUE(ok) << cfg.lastError();
@@ -113,7 +115,7 @@ TEST(UpsModelConfigTest, LineWithoutEqualIsIgnored) {
 // Неизвестный ключ
 TEST(UpsModelConfigTest, UnknownKeyIsIgnored) {
     UpsModelConfig cfg;
-    std::string path = std::string(TEST_DATA_DIR) + "/unknown_key.ini";
+    std::string path = dataDir + "/unknown_key.ini";
 
     bool ok = cfg.load(path, "APC");
     EXPECT_TRUE(ok) << cfg.lastError();
@@ -122,7 +124,7 @@ TEST(UpsModelConfigTest, UnknownKeyIsIgnored) {
 // Отсутствующее имя модели
 TEST(UpsModelConfigTest, MissingModelName) {
     UpsModelConfig cfg;
-    std::string path = std::string(TEST_DATA_DIR) + "/no_modelname.ini";
+    std::string path = dataDir + "/no_modelname.ini";
 
     bool ok = cfg.load(path, "APC");
     EXPECT_FALSE(ok);
@@ -132,7 +134,7 @@ TEST(UpsModelConfigTest, MissingModelName) {
 // Отсутствующее значение bypassStatusAllowed
 TEST(UpsModelConfigTest, MissingBypassValues) {
     UpsModelConfig cfg;
-    std::string path = std::string(TEST_DATA_DIR) + "/no_bypass_allowed.ini";
+    std::string path = dataDir + "/no_bypass_allowed.ini";
 
     bool ok = cfg.load(path, "APC");
     EXPECT_FALSE(ok);
