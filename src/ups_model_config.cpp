@@ -9,10 +9,10 @@
 #include "utils/string_utils.h"
 
 bool UpsModelConfig::load(const std::string& path, const std::string& section) {
-    m_lastError.clear();
     m_modelName.clear();
-    m_bypassValues.clear();
-    m_oids = UpsOids{};  // сброс OID полей
+    m_oids = UpsOids{};    // сброс OID полей
+    m_definedFields = FieldValueSets{};  // сброс набора сложных полей
+    m_lastError.clear();
 
     std::string fullPath = utils::resolvePath(path);
 
@@ -36,7 +36,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         {"batteryStatusOID", &UpsOids::batteryStatusOID},
         {"chargeRemainingOID", &UpsOids::chargeRemainingOID},
         {"batteryTempOID", &UpsOids::batteryTempOID},
-        {"bypassStatusOID", &UpsOids::bypassStatusOID}};
+        {"outputStatusOID", &UpsOids::outputStatusOID}};
     // LCOV_EXCL_STOP
 
     while (std::getline(file, line)) {
@@ -74,20 +74,19 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
             continue;
         }
 
-        // 3) список значений байпаса
-        if (key == "bypassStatusAllowed") {
-            std::stringstream ss(value);
-            std::string part;
-            while (std::getline(ss, part, ',')) {
-                part = utils::trim(part);
-                if (!part.empty()) {
-                    try {
-                        m_bypassValues.push_back(std::stoi(part));
-                    } catch (...) {
-                        m_lastError = "Invalid integer in bypassStatusAllowed: '" + part + "'";
-                        return false;
-                    }
-                }
+        if (key == "batteryStatusValues") {
+            std::string full = utils::readMultilineBracedBlock(file, value);
+            if (!parseFieldValueSet(full, m_definedFields.batteryStatusSet)) {
+                return false;
+            }
+            loadedAnything = true;
+            continue;
+        }
+
+        if (key == "outputStatusValues") {
+            std::string full = utils::readMultilineBracedBlock(file, value);
+            if (!parseFieldValueSet(full, m_definedFields.outputStatusSet)) {
+                return false;
             }
             loadedAnything = true;
             continue;
@@ -127,13 +126,56 @@ bool UpsModelConfig::validate(const std::string& section) {
     if (!check(m_oids.batteryStatusOID, "batteryStatusOID")) return false;
     if (!check(m_oids.chargeRemainingOID, "chargeRemainingOID")) return false;
     if (!check(m_oids.batteryTempOID, "batteryTempOID")) return false;
-    if (!check(m_oids.bypassStatusOID, "bypassStatusOID")) return false;
+    if (!check(m_oids.outputStatusOID, "outputStatusOID")) return false;
 
-    if (m_bypassValues.empty()) {
-        m_lastError = "Missing required list \"bypassStatusAllowed\" in section [" + section + "]";
+    if (m_definedFields.batteryStatusSet.nameToValue.empty()) {
+        m_lastError = "Field \"batteryStatusValues\" is missing or empty";
         return false;
     }
 
+    if (m_definedFields.outputStatusSet.nameToValue.empty()) {
+        m_lastError = "Field \"outputStatusValues\" is missing or empty";
+        return false;
+    }
+
+    return true;
+}
+
+bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& out) {
+    out.nameToValue.clear();
+    out.valueToName.clear();
+
+    std::string s = utils::trim(raw);
+
+    if (s.size() < 2 || s.front() != '{' || s.back() != '}') return false;
+
+    s = s.substr(1, s.size() - 2);  // remove {}
+
+    std::stringstream ss{s};
+    std::string pair;
+
+    while (std::getline(ss, pair, ',')) {
+        auto pos = pair.find(':');
+        if (pos == std::string::npos) return false;
+
+        std::string name = utils::trim(pair.substr(0, pos));
+        std::string val = utils::trim(pair.substr(pos + 1));
+
+        // remove quotes
+        if (name.size() >= 2 && name.front() == '"' && name.back() == '"')
+            name = name.substr(1, name.size() - 2);
+
+        int number = 0;
+        try {
+            number = std::stoi(val);
+        } catch (const std::exception&) {
+            m_lastError = "Invalid integer value in enum: '" + val + "'";
+            return false;
+        }
+
+        out.nameToValue[name] = number;
+        out.valueToName[number] = name;
+    }
     return true;
 }
 
@@ -141,6 +183,6 @@ const std::string& UpsModelConfig::modelName() const { return m_modelName; }
 
 const UpsOids& UpsModelConfig::oids() const { return m_oids; }
 
-const std::vector<int>& UpsModelConfig::bypassValues() const { return m_bypassValues; }
+const FieldValueSets& UpsModelConfig::definedFields() const { return m_definedFields; }
 
 const std::string& UpsModelConfig::lastError() const { return m_lastError; }
