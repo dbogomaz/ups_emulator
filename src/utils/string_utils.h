@@ -12,11 +12,14 @@ namespace utils {
 std::string trim(const std::string& s);
 
 /**
- * @brief Считывает многострочный enum из файла, начиная с первой строки
+ * @brief Считывает многострочный блок enum до символа '}'.
  * 
- * @param file Поток файла для чтения
- * @param firstLine Первая строка enum
- * @return std::string Полный многострочный enum в виде строки
+ * Объединяет firstLine и последующие строки файла,
+ * пока не встретится закрывающая фигурная скобка.
+ *
+ * @param file Поток файла, продолжающийся после firstLine.
+ * @param firstLine Первая строка блока (начинается с '{').
+ * @return std::string Полный объединённый блок enum в одной строке.
  */
 std::string readMultilineEnum(std::ifstream& file, const std::string& firstLine);
 

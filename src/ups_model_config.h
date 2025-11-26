@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 // Список OID полей для UPS
 struct UpsOids {
@@ -13,8 +14,19 @@ struct UpsOids {
     std::string batteryStatusOID;
     std::string chargeRemainingOID;
     std::string batteryTempOID;
-    std::string bypassStatusOID;
+    std::string outputStatusOID;
 };
+
+struct EnumMap {
+    std::map<std::string, int> nameToValue;
+    std::map<int, std::string> valueToName;
+};
+
+struct UpsEnums {
+    EnumMap outputStatus;
+    EnumMap batteryStatus;
+};
+
 
 class UpsModelConfig {
 public:
@@ -23,17 +35,18 @@ public:
 
     const std::string& modelName() const;
     const UpsOids& oids() const;
-    const std::vector<int>& bypassValues() const;
+    const UpsEnums& enums() const;
     const std::string& lastError() const;
 
 private:
     std::string m_modelName{};
     UpsOids m_oids{};
-    std::vector<int> m_bypassValues{};
+    UpsEnums m_enums{};
     std::string m_lastError{};
 
     // проверка обязательных полей
     bool validate(const std::string& section);
+    bool parseEnumMap(const std::string& raw, EnumMap& out);
 };
 
 #endif  // UPS_MODEL_CONFIG_H

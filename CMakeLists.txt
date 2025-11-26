@@ -18,8 +18,8 @@ if(1) # PROJECT CONFIG BLOCK
 endif()
 
 if(1) # OPTIONS (TESTING, COVERAGE) BLOCK
-    option(BUILD_TESTING "Build unit tests" ON)
-    option(BUILD_COVERAGE "Enable coverage instrumentation" ON)
+    option(BUILD_TESTING "Build unit tests" OFF)
+    option(BUILD_COVERAGE "Enable coverage instrumentation" OFF)
     if (BUILD_COVERAGE)
         set(BUILD_TESTING ON CACHE BOOL "Build unit tests" FORCE)
         set(COVERAGE_COMPILE_FLAGS --coverage -O0 -g)
