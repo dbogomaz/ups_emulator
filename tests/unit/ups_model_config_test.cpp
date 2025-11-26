@@ -7,53 +7,38 @@ const std::string dataDir = std::string(TEST_DATA_DIR) + "/ups_model_config";
 TEST(UpsModelConfigTest, LoadAPCSuccess) {
     UpsModelConfig cfg;
     bool ok = cfg.load("config/ups_models.ini", "APC");
-
-    // 1) Успешная загрузка
     ASSERT_TRUE(ok) << cfg.lastError();
-
-    // 2) Проверяем, что имя модели загружено
     EXPECT_EQ(cfg.modelName(), "Smart-UPS RT 2000 XL");
-
-    // 3) Проверяем OID
     EXPECT_FALSE(cfg.oids().modelNameOID.empty());
-
-    // 4) Проверяем значения байпаса
-    ASSERT_EQ(cfg.bypassValues().size(), 3);
-    EXPECT_EQ(cfg.bypassValues()[0], 6);
-    EXPECT_EQ(cfg.bypassValues()[1], 9);
-    EXPECT_EQ(cfg.bypassValues()[2], 10);
+    // batteryStatusValues
+    const auto& bs = cfg.definedFields().batteryStatusSet.nameToValue;
+    ASSERT_FALSE(bs.empty());
+    EXPECT_EQ(bs.at("batteryNormal"), 2);
+    EXPECT_EQ(bs.at("batteryLow"), 3);
+    // outputStatusValues
+    const auto& os = cfg.definedFields().outputStatusSet.nameToValue;
+    ASSERT_FALSE(os.empty());
+    EXPECT_EQ(os.at("onLine"), 2);
 }
 
 // Успешная загрузка секции INELT
 TEST(UpsModelConfigTest, LoadINELTSuccess) {
     UpsModelConfig cfg;
     bool ok = cfg.load("config/ups_models.ini", "INELT");
-
-    // 1) Успешная загрузка
     ASSERT_TRUE(ok) << cfg.lastError();
-
-    // 2) Проверяем имя модели
     EXPECT_EQ(cfg.modelName(), "MP3000RT");
-
-    // 3) Проверяем OID
     EXPECT_FALSE(cfg.oids().modelNameOID.empty());
-
-    // 4) Проверяем bypassValues
-    ASSERT_EQ(cfg.bypassValues().size(), 1);
-    EXPECT_EQ(cfg.bypassValues()[0], 4);
+    const auto& bs = cfg.definedFields().batteryStatusSet.nameToValue;
+    ASSERT_FALSE(bs.empty());
+    EXPECT_NE(bs.find("batteryDepleted"), bs.end());
 }
 
 // Файл не найден
 TEST(UpsModelConfigTest, FileNotFound) {
     UpsModelConfig cfg;
     bool ok = cfg.load("no_such_file.ini", "APC");
-
-    // Ожидаем ошибку
     EXPECT_FALSE(ok);
-
-    // lastError должен содержать текст
     EXPECT_FALSE(cfg.lastError().empty());
-
     // Проверка, что ошибка корректно сформирована
     EXPECT_NE(cfg.lastError().find("Cannot open file"), std::string::npos);
 }
@@ -62,13 +47,8 @@ TEST(UpsModelConfigTest, FileNotFound) {
 TEST(UpsModelConfigTest, SectionNotFound) {
     UpsModelConfig cfg;
     bool ok = cfg.load("config/ups_models.ini", "NO_SUCH_SECTION");
-
-    // Ожидаем ошибку
     EXPECT_FALSE(ok);
-
-    // lastError должен быть заполнен
     EXPECT_FALSE(cfg.lastError().empty());
-
     // Проверяем, что ошибка касается отсутствующей секции
     EXPECT_NE(cfg.lastError().find("not found"), std::string::npos);
 }
@@ -76,67 +56,66 @@ TEST(UpsModelConfigTest, SectionNotFound) {
 // Отсутствующее обязательное поле OID
 TEST(UpsModelConfigTest, MissingRequiredOID) {
     UpsModelConfig cfg;
-    std::string path = dataDir + "/missing_oid.ini";
-    bool ok = cfg.load(path, "APC");
-
-    // Ожидаем ошибку
+    bool ok = cfg.load(dataDir + "/missing_oid.ini", "APC");
     EXPECT_FALSE(ok);
-
-    // lastError должен быть заполнен
     EXPECT_FALSE(cfg.lastError().empty());
-
     // Проверяем, что сообщение относится к отсутствию обязательного поля
     EXPECT_NE(cfg.lastError().find("batteryStatusOID"), std::string::npos) << cfg.lastError();
 }
 
-// Некорректные значения bypassStatusAllowed
-TEST(UpsModelConfigTest, InvalidBypassValues) {
+// Некорректное значение в перечислении batteryStatusValues
+TEST(UpsModelConfigTest, InvalidEnumValueBatteryStatus) {
     UpsModelConfig cfg;
-    std::string path = dataDir + "/bad_bypass.ini";
-    bool ok = cfg.load(path, "APC");
-
-    // Должен вернуть false
+    bool ok = cfg.load(dataDir + "/bad_enum_battery.ini", "APC");
     EXPECT_FALSE(ok);
-
-    // lastError должен содержать информацию о некорректном числе
-    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos) << cfg.lastError();
-    EXPECT_NE(cfg.lastError().find("aa"), std::string::npos) << cfg.lastError();
+    EXPECT_FALSE(cfg.lastError().empty());
+    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos);
 }
+
+// Некорректное значение в перечислении outputStatusValues
+TEST(UpsModelConfigTest, InvalidEnumValueOutputStatus) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/bad_enum_output.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos);
+}
+
 
 // Параметр без знака равенства
 TEST(UpsModelConfigTest, LineWithoutEqualIsIgnored) {
     UpsModelConfig cfg;
-    std::string path = dataDir + "/no_equal.ini";
-
-    bool ok = cfg.load(path, "APC");
+    bool ok = cfg.load(dataDir + "/no_equal.ini", "APC");
     EXPECT_TRUE(ok) << cfg.lastError();
 }
 
 // Неизвестный ключ
 TEST(UpsModelConfigTest, UnknownKeyIsIgnored) {
     UpsModelConfig cfg;
-    std::string path = dataDir + "/unknown_key.ini";
-
-    bool ok = cfg.load(path, "APC");
+    bool ok = cfg.load(dataDir + "/unknown_key.ini", "APC");
     EXPECT_TRUE(ok) << cfg.lastError();
 }
 
 // Отсутствующее имя модели
 TEST(UpsModelConfigTest, MissingModelName) {
     UpsModelConfig cfg;
-    std::string path = dataDir + "/no_modelname.ini";
-
-    bool ok = cfg.load(path, "APC");
+    bool ok = cfg.load(dataDir + "/no_modelname.ini", "APC");
     EXPECT_FALSE(ok);
     EXPECT_NE(cfg.lastError().find("modelName"), std::string::npos);
 }
 
-// Отсутствующее значение bypassStatusAllowed
-TEST(UpsModelConfigTest, MissingBypassValues) {
+// Отсутствуют outputStatusValues
+TEST(UpsModelConfigTest, MissingOutputStatusValues) {
     UpsModelConfig cfg;
-    std::string path = dataDir + "/no_bypass_allowed.ini";
-
-    bool ok = cfg.load(path, "APC");
+    bool ok = cfg.load(dataDir + "/no_outputStatus_values.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("bypassStatusAllowed"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("outputStatusValues"), std::string::npos);
 }
+
+// Отсутствуют batteryStatusValues
+TEST(UpsModelConfigTest, MissingBatteryStatusValues) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/no_batteryStatus_values.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("batteryStatusValues"), std::string::npos);
+}
+

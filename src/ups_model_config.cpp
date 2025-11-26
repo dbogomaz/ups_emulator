@@ -76,9 +76,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
 
         if (key == "batteryStatusValues") {
             std::string full = utils::readMultilineBracedBlock(file, value);
-
             if (!parseFieldValueSet(full, m_definedFields.batteryStatusSet)) {
-                m_lastError = "Invalid format in batteryStatusValues: " + full;
                 return false;
             }
             loadedAnything = true;
@@ -88,7 +86,6 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         if (key == "outputStatusValues") {
             std::string full = utils::readMultilineBracedBlock(file, value);
             if (!parseFieldValueSet(full, m_definedFields.outputStatusSet)) {
-                m_lastError = "Invalid format in outputStatusValues: " + full;
                 return false;
             }
             loadedAnything = true;
