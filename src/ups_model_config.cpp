@@ -74,21 +74,21 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
             continue;
         }
 
-        if (key == "batteryStatusEnum") {
+        if (key == "batteryStatusValues") {
             std::string full = utils::readMultilineEnum(file, value);
 
             if (!parseEnumMap(full, m_enums.batteryStatus)) {
-                m_lastError = "Invalid format in batteryStatusEnum: " + full;
+                m_lastError = "Invalid format in batteryStatusValues: " + full;
                 return false;
             }
             loadedAnything = true;
             continue;
         }
 
-        if (key == "outputStatusEnum") {
+        if (key == "outputStatusValues") {
             std::string full = utils::readMultilineEnum(file, value);
             if (!parseEnumMap(full, m_enums.outputStatus)) {
-                m_lastError = "Invalid format in outputStatusEnum: " + full;
+                m_lastError = "Invalid format in outputStatusValues: " + full;
                 return false;
             }
             loadedAnything = true;
