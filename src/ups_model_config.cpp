@@ -11,7 +11,7 @@
 bool UpsModelConfig::load(const std::string& path, const std::string& section) {
     m_modelName.clear();
     m_oids = UpsOids{};    // сброс OID полей
-    m_enums = UpsEnums{};  // сброс Enum полей
+    m_definedFields = FieldValueSets{};  // сброс набора сложных полей
     m_lastError.clear();
 
     std::string fullPath = utils::resolvePath(path);
@@ -75,9 +75,9 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         }
 
         if (key == "batteryStatusValues") {
-            std::string full = utils::readMultilineEnum(file, value);
+            std::string full = utils::readMultilineBracedBlock(file, value);
 
-            if (!parseEnumMap(full, m_enums.batteryStatus)) {
+            if (!parseFieldValueSet(full, m_definedFields.batteryStatusSet)) {
                 m_lastError = "Invalid format in batteryStatusValues: " + full;
                 return false;
             }
@@ -86,8 +86,8 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         }
 
         if (key == "outputStatusValues") {
-            std::string full = utils::readMultilineEnum(file, value);
-            if (!parseEnumMap(full, m_enums.outputStatus)) {
+            std::string full = utils::readMultilineBracedBlock(file, value);
+            if (!parseFieldValueSet(full, m_definedFields.outputStatusSet)) {
                 m_lastError = "Invalid format in outputStatusValues: " + full;
                 return false;
             }
@@ -131,20 +131,20 @@ bool UpsModelConfig::validate(const std::string& section) {
     if (!check(m_oids.batteryTempOID, "batteryTempOID")) return false;
     if (!check(m_oids.outputStatusOID, "outputStatusOID")) return false;
 
-    if (m_enums.batteryStatus.nameToValue.empty()) {
-        m_lastError = "batteryStatusEnum is missing or empty";
+    if (m_definedFields.batteryStatusSet.nameToValue.empty()) {
+        m_lastError = "Field \"batteryStatusValues\" is missing or empty";
         return false;
     }
 
-    if (m_enums.outputStatus.nameToValue.empty()) {
-        m_lastError = "outputStatusEnum is missing or empty";
+    if (m_definedFields.outputStatusSet.nameToValue.empty()) {
+        m_lastError = "Field \"outputStatusValues\" is missing or empty";
         return false;
     }
 
     return true;
 }
 
-bool UpsModelConfig::parseEnumMap(const std::string& raw, EnumMap& out) {
+bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& out) {
     out.nameToValue.clear();
     out.valueToName.clear();
 
@@ -186,6 +186,6 @@ const std::string& UpsModelConfig::modelName() const { return m_modelName; }
 
 const UpsOids& UpsModelConfig::oids() const { return m_oids; }
 
-const UpsEnums& UpsModelConfig::enums() const { return m_enums; }
+const FieldValueSets& UpsModelConfig::definedFields() const { return m_definedFields; }
 
 const std::string& UpsModelConfig::lastError() const { return m_lastError; }

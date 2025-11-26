@@ -28,7 +28,7 @@ int main() {
 
     // ===== BatteryStatusEnum =====
     std::cout << "BatteryStatusEnum:\n";
-    const EnumMap& bat = cfg.enums().batteryStatus;
+    const FieldValueSet& bat = cfg.definedFields().batteryStatusSet;
     for (std::map<std::string, int>::const_iterator it = bat.nameToValue.begin();
          it != bat.nameToValue.end(); ++it) {
         std::cout << "  " << it->first << " = " << it->second << "\n";
@@ -37,7 +37,7 @@ int main() {
 
     // ===== OutputStatusEnum =====
     std::cout << "OutputStatusEnum:\n";
-    const EnumMap& out = cfg.enums().outputStatus;
+    const FieldValueSet& out = cfg.definedFields().outputStatusSet;
     for (std::map<std::string, int>::const_iterator it = out.nameToValue.begin();
          it != out.nameToValue.end(); ++it) {
         std::cout << "  " << it->first << " = " << it->second << "\n";

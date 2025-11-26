@@ -14,7 +14,7 @@ std::string trim(const std::string& s) {
     return s.substr(start, end - start + 1);
 }
 
-std::string readMultilineEnum(std::ifstream& file, const std::string& firstLine) {
+std::string readMultilineBracedBlock(std::ifstream& file, const std::string& firstLine) {
     std::string result = firstLine;
 
     // Если это однострочный enum — возвращаем как есть

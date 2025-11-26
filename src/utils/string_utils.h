@@ -12,16 +12,16 @@ namespace utils {
 std::string trim(const std::string& s);
 
 /**
- * @brief Считывает многострочный блок enum до символа '}'.
- * 
- * Объединяет firstLine и последующие строки файла,
- * пока не встретится закрывающая фигурная скобка.
+ * @brief Считывает многострочный блок данных в фигурных скобках.
+ *
+ * Объединяет firstLine и следующие строки файла,
+ * пока не будет встречена закрывающая фигурная скобка '}'.
  *
  * @param file Поток файла, продолжающийся после firstLine.
- * @param firstLine Первая строка блока (начинается с '{').
- * @return std::string Полный объединённый блок enum в одной строке.
+ * @param firstLine Первая строка блока (обычно начинается с '{').
+ * @return std::string Полный объединённый блок в одной строке.
  */
-std::string readMultilineEnum(std::ifstream& file, const std::string& firstLine);
+std::string readMultilineBracedBlock(std::ifstream& file, const std::string& firstLine);
 
 }  // namespace utils
 

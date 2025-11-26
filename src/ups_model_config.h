@@ -17,16 +17,18 @@ struct UpsOids {
     std::string outputStatusOID;
 };
 
-struct EnumMap {
+// Описание значений сложного поля секции INI (например, batteryStatusValues)
+struct FieldValueSet {
     std::map<std::string, int> nameToValue;
     std::map<int, std::string> valueToName;
 };
 
-struct UpsEnums {
-    EnumMap outputStatus;
-    EnumMap batteryStatus;
-};
 
+// Набор структурированных полей, имеющих список значений
+struct FieldValueSets {
+    FieldValueSet outputStatusSet;
+    FieldValueSet batteryStatusSet;
+};
 
 class UpsModelConfig {
 public:
@@ -35,18 +37,18 @@ public:
 
     const std::string& modelName() const;
     const UpsOids& oids() const;
-    const UpsEnums& enums() const;
+    const FieldValueSets& definedFields() const;
     const std::string& lastError() const;
 
 private:
     std::string m_modelName{};
     UpsOids m_oids{};
-    UpsEnums m_enums{};
+    FieldValueSets m_definedFields{};
     std::string m_lastError{};
 
     // проверка обязательных полей
     bool validate(const std::string& section);
-    bool parseEnumMap(const std::string& raw, EnumMap& out);
+    bool parseFieldValueSet(const std::string& raw, FieldValueSet& out);
 };
 
 #endif  // UPS_MODEL_CONFIG_H
