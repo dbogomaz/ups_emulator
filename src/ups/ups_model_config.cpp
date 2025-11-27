@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include "utils/fs_utils.h"
 #include "utils/string_utils.h"
@@ -171,11 +172,21 @@ bool UpsModelConfig::validate(const std::string& section) {
 //  Разбор структуры сложного поля { "Name": 1, "Other": 2 }
 // =============================================================
 bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& out) {
+    printf("[DEBUG] <parseFieldValueSet> raw: %s\n", raw.c_str());
     out.nameToValue.clear();
     out.valueToName.clear();
 
-    std::string s = utils::trim(raw);
+    // ----  проверка парности скобок в raw ----
+    int openCount = std::count(raw.begin(), raw.end(), '{');
+    int closeCount = std::count(raw.begin(), raw.end(), '}');
+    if (openCount != 1 || 
+        closeCount != 1) {
+        m_lastError = "Invalid value-set block: unbalanced braces";
+        return false;
+    }
 
+    std::string s = utils::trim(raw);
+    // ---- проверка наличия внешних фигурных скобок ----
     if (s.size() < 2 || 
         s.front() != '{' || 
         s.back() != '}') {
@@ -196,6 +207,11 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
             return false;
         }
 
+        // если внутри пары есть кавычки после значения — значит пропущена запятая
+        if (pair.find('"', pos + 1) != std::string::npos) {
+            m_lastError = "Invalid value-set entry (missing comma): " + pair;
+            return false;
+        }
         std::string name = utils::trim(pair.substr(0, pos));
         std::string val = utils::trim(pair.substr(pos + 1));
 

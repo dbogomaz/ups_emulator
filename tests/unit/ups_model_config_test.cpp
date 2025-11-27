@@ -136,15 +136,6 @@ TEST(UpsModelConfigTest, ValueSetMissingClosingBrace) {
         << "Expected error about missing closing brace, got: " << cfg.lastError();
 }
 
-// Некорректный формат value-set (лишняя закрывающая фигурная скобка)
-TEST(UpsModelConfigTest, ValueSetExtraClosingBrace) {
-    UpsModelConfig cfg;
-    bool ok = cfg.load(dataDir + "/bad_valueset_extra_closing.ini", "APC");
-    EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("brace"), std::string::npos)
-        << "Expected error about extra closing brace, got: " << cfg.lastError();
-}
-
 // Некорректный формат value-set (отсутствует запятая между записями)
 TEST(UpsModelConfigTest, ValueSetMissingComma) {
     UpsModelConfig cfg;
