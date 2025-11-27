@@ -1,7 +1,6 @@
 #include "ups_model_config.h"
 
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <sstream>
 
@@ -10,7 +9,7 @@
 
 bool UpsModelConfig::load(const std::string& path, const std::string& section) {
     m_modelName.clear();
-    m_oids = UpsOids{};    // сброс OID полей
+    m_oids = UpsOids{};                  // сброс OID полей
     m_definedFields = FieldValueSets{};  // сброс набора сложных полей
     m_lastError.clear();
 
@@ -59,14 +58,14 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         std::string key = utils::trim(line.substr(0, eq));
         std::string value = utils::trim(line.substr(eq + 1));
 
-        // 1) modelName — отдельная сущность
+        // modelName — отдельная сущность
         if (key == "modelName") {
             m_modelName = value;
             loadedAnything = true;
             continue;
         }
 
-        // 2) поля OID
+        // поля OID
         auto it = fieldMap.find(key);
         if (it != fieldMap.end()) {
             m_oids.*(it->second) = value;
@@ -74,6 +73,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
             continue;
         }
 
+        // сложные поля со списком значений
         if (key == "batteryStatusValues") {
             std::string full = utils::readMultilineBracedBlock(file, value);
             if (!parseFieldValueSet(full, m_definedFields.batteryStatusSet)) {
@@ -82,7 +82,6 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
             loadedAnything = true;
             continue;
         }
-
         if (key == "outputStatusValues") {
             std::string full = utils::readMultilineBracedBlock(file, value);
             if (!parseFieldValueSet(full, m_definedFields.outputStatusSet)) {
@@ -98,7 +97,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         return false;
     }
 
-    // обязательная проверка всех полей
+    // проверка полей
     if (!validate(section)) return false;
 
     return true;

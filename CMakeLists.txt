@@ -5,6 +5,7 @@ if(1) # PROJECT CONFIG BLOCK
 
     set(PROJECT_INCLUDE_DIR 
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/ups
         ${CMAKE_SOURCE_DIR}/src/utils
     )
 
@@ -29,7 +30,7 @@ endif()
 
 if(1) # UPS CORE LIBRARY BLOCK
     set(UPS_CORE_SRC
-        src/ups_model_config.cpp
+        src/ups/ups_model_config.cpp
 
         src/utils/fs_utils.cpp
         src/utils/string_utils.cpp
@@ -84,5 +85,5 @@ endif()
 if(1) # COPY REQUIRED FILES BLOCK
     set(CONFIG_FOLDER ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config)
     file(MAKE_DIRECTORY ${CONFIG_FOLDER})
-    file(COPY ${CMAKE_SOURCE_DIR}/ups_models.ini DESTINATION ${CONFIG_FOLDER})
+    file(COPY ${CMAKE_SOURCE_DIR}/src/ups/ups_models.ini DESTINATION ${CONFIG_FOLDER})
 endif()
