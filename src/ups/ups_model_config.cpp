@@ -12,7 +12,7 @@
 // =============================================================
 struct OidFieldInfo {
     const char* key;
-    std::string UpsOids::* member;
+    std::string UpsOids::* field;
 };
 
 static const OidFieldInfo OID_FIELDS[] = {
@@ -31,7 +31,7 @@ static const OidFieldInfo OID_FIELDS[] = {
 // =============================================================
 struct ValueSetFieldInfo {
     const char* key;
-    FieldValueSet FieldValueSets::* member;
+    FieldValueSet FieldValueSets::* field;
 };
 
 static const ValueSetFieldInfo VALUESET_FIELDS[] = {
@@ -106,7 +106,7 @@ bool UpsModelConfig::load(const std::string& path, const IniSectionName& section
         bool isOidField = false;
         for (const auto& f : OID_FIELDS) {
             if (key == f.key) {
-                m_oids.*(f.member) = value;
+                m_oids.*(f.field) = value;
                 loadedAnything = true;
                 isOidField = true;
                 break;
@@ -117,7 +117,7 @@ bool UpsModelConfig::load(const std::string& path, const IniSectionName& section
         // ---- сложные поля ----
         if (const auto* f = findValueSetField(key)) {
             std::string fullBlock = utils::readMultilineBracedBlock(file, value);
-            if (!parseFieldValueSet(fullBlock, m_definedFields.*(f->member))) {
+            if (!parseFieldValueSet(fullBlock, m_definedFields.*(f->field))) {
                 // lastError уже установлен в parseFieldValueSet
                 return false;
             }
@@ -149,7 +149,7 @@ bool UpsModelConfig::validate(const IniSectionName& section) {
 
     // ---- все OID поля ----
     for (const auto& f : OID_FIELDS) {
-        const Oid& val = m_oids.*(f.member);
+        const Oid& val = m_oids.*(f.field);
         if (val.empty()) {
             m_lastError = "Missing required OID field \"" + std::string(f.key) + "\" in section [" +
                           section + "]";
@@ -159,7 +159,7 @@ bool UpsModelConfig::validate(const IniSectionName& section) {
 
     // ---- все сложные поля ----
     for (const auto& f : VALUESET_FIELDS) {
-        const auto& set = m_definedFields.*(f.member);
+        const auto& set = m_definedFields.*(f.field);
         if (set.nameToValue.empty()) {
             m_lastError = "Field \"" + std::string(f.key) + "\" is missing or empty";
             return false;
