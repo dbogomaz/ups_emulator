@@ -17,14 +17,15 @@ std::string trim(const std::string& s) {
 std::string readMultilineBracedBlock(std::ifstream& file, const std::string& firstLine) {
     std::string result = firstLine;
 
-    // Если это однострочный enum — возвращаем как есть
+    // Если строка содержит закрывающую скобку, возвращаем её сразу
     if (firstLine.find('}') != std::string::npos) return result;
 
     std::string line;
     while (std::getline(file, line)) {
         line = utils::trim(line);
 
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || 
+            line[0] == '#') continue;
 
         result += " " + line;
 

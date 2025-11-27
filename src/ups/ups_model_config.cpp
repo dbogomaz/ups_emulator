@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include "utils/fs_utils.h"
 #include "utils/string_utils.h"
@@ -73,10 +74,13 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         line = utils::trim(line);
 
         // ---- пропустить пустые строки и комментарии ----
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || 
+            line[0] == '#') 
+            continue;
 
         // ---- определение секции ----
-        if (line.front() == '[' && line.back() == ']') {
+        if (line.front() == '[' && 
+            line.back() == ']') {
             std::string sec = line.substr(1, line.size() - 2);
             inSection = (sec == section);
             continue;
@@ -172,12 +176,16 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
     out.nameToValue.clear();
     out.valueToName.clear();
 
-    std::string s = utils::trim(raw);
-
-    if (s.size() < 2 || s.front() != '{' || s.back() != '}') {
-        m_lastError = "Invalid value-set format: " + raw;
+    // ----  проверка парности скобок в raw ----
+    int openCount = std::count(raw.begin(), raw.end(), '{');
+    int closeCount = std::count(raw.begin(), raw.end(), '}');
+    if (openCount != 1 || 
+        closeCount != 1) {
+        m_lastError = "Invalid value-set block: unbalanced braces";
         return false;
     }
+
+    std::string s = utils::trim(raw);
 
     // удаление внешних фигурных скобок {}
     s = s.substr(1, s.size() - 2);
@@ -192,11 +200,18 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
             return false;
         }
 
+        // если внутри пары есть кавычки после значения — значит пропущена запятая
+        if (pair.find('"', pos + 1) != std::string::npos) {
+            m_lastError = "Invalid value-set entry (missing comma): " + pair;
+            return false;
+        }
         std::string name = utils::trim(pair.substr(0, pos));
         std::string val = utils::trim(pair.substr(pos + 1));
 
         // ---- remove quotes ----
-        if (name.size() >= 2 && name.front() == '"' && name.back() == '"')
+        if (name.size() >= 2 && 
+            name.front() == '"' && 
+            name.back() == '"')
             name = name.substr(1, name.size() - 2);
 
         int number = 0;
