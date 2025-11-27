@@ -143,3 +143,12 @@ TEST(UpsModelConfigTest, ValueSetMissingComma) {
     EXPECT_FALSE(ok);
     EXPECT_NE(cfg.lastError().find("entry"), std::string::npos) << cfg.lastError();
 }
+
+// Некорректный формат value-set (отсутствует двоеточие между ключом и значением)
+TEST(UpsModelConfigTest, ValueSetMissingColon) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/bad_valueset_missing_colon.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("Invalid value-set entry"), std::string::npos)
+        << "Expected error about missing colon, got: " << cfg.lastError();
+}
