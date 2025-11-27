@@ -1,16 +1,60 @@
 #include "ups_model_config.h"
 
 #include <fstream>
-#include <map>
 #include <sstream>
 
 #include "utils/fs_utils.h"
 #include "utils/string_utils.h"
 
+// =============================================================
+//  Таблица обычных OID-полей
+// =============================================================
+struct OidFieldInfo {
+    const char* key;
+    std::string UpsOids::* member;
+};
+
+static const OidFieldInfo OID_FIELDS[] = {
+    {"modelNameOID", &UpsOids::modelNameOID},
+    {"inputVoltageOID", &UpsOids::inputVoltageOID},
+    {"inputFreqOID", &UpsOids::inputFreqOID},
+    {"outputVoltageOID", &UpsOids::outputVoltageOID},
+    {"batteryStatusOID", &UpsOids::batteryStatusOID},
+    {"chargeRemainingOID", &UpsOids::chargeRemainingOID},
+    {"batteryTempOID", &UpsOids::batteryTempOID},
+    {"outputStatusOID", &UpsOids::outputStatusOID},
+};
+
+// =============================================================
+//  Таблица сложных полей  { "Name": 1, "Other": 2 }
+// =============================================================
+struct ValueSetFieldInfo {
+    const char* key;
+    FieldValueSet FieldValueSets::* member;
+};
+
+static const ValueSetFieldInfo VALUESET_FIELDS[] = {
+    {"batteryStatusValues", &FieldValueSets::batteryStatusSet},
+    {"outputStatusValues", &FieldValueSets::outputStatusSet},
+};
+
+// =============================================================
+//  Вспомогательная функция: найти сложное поле по ключу
+// =============================================================
+static const ValueSetFieldInfo* findValueSetField(const std::string& key) {
+    for (const auto& f : VALUESET_FIELDS) {
+        if (key == f.key) return &f;
+    }
+    return nullptr;
+}
+
+// =============================================================
+//  Основная загрузка INI-секции
+// =============================================================
 bool UpsModelConfig::load(const std::string& path, const std::string& section) {
     m_modelName.clear();
-    m_oids = UpsOids{};                  // сброс OID полей
-    m_definedFields = FieldValueSets{};  // сброс набора сложных полей
+    m_oids = UpsOids{};
+    m_definedFields = FieldValueSets{};
     m_lastError.clear();
 
     std::string fullPath = utils::resolvePath(path);
@@ -22,166 +66,158 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
     }
 
     std::string line;
-    bool inSection = false;       // флаг, что мы внутри нужной секции
-    bool loadedAnything = false;  // флаг, что мы загрузили хоть что-то
-
-    // LCOV_EXCL_START
-    // карта привязок "ключ - поле структуры"
-    const std::map<std::string, std::string UpsOids::*> fieldMap = {
-        {"modelNameOID", &UpsOids::modelNameOID},
-        {"inputVoltageOID", &UpsOids::inputVoltageOID},
-        {"inputFreqOID", &UpsOids::inputFreqOID},
-        {"outputVoltageOID", &UpsOids::outputVoltageOID},
-        {"batteryStatusOID", &UpsOids::batteryStatusOID},
-        {"chargeRemainingOID", &UpsOids::chargeRemainingOID},
-        {"batteryTempOID", &UpsOids::batteryTempOID},
-        {"outputStatusOID", &UpsOids::outputStatusOID}};
-    // LCOV_EXCL_STOP
+    bool inSection = false;
+    bool loadedAnything = false;
 
     while (std::getline(file, line)) {
         line = utils::trim(line);
+
+        // ---- пропустить пустые строки и комментарии ----
         if (line.empty() || line[0] == '#') continue;
 
-        // секция
+        // ---- определение секции ----
         if (line.front() == '[' && line.back() == ']') {
             std::string sec = line.substr(1, line.size() - 2);
             inSection = (sec == section);
             continue;
         }
-
         if (!inSection) continue;
 
-        // key=value
+        // ---- должен быть знак '=' ----
         size_t eq = line.find('=');
         if (eq == std::string::npos) continue;
 
+        // если дошли до сюда, то есть key=value
         std::string key = utils::trim(line.substr(0, eq));
         std::string value = utils::trim(line.substr(eq + 1));
 
-        // modelName — отдельная сущность
+        // ---- modelName ----
         if (key == "modelName") {
             m_modelName = value;
             loadedAnything = true;
             continue;
         }
 
-        // поля OID
-        auto it = fieldMap.find(key);
-        if (it != fieldMap.end()) {
-            m_oids.*(it->second) = value;
+        // ---- обычные OID-поля ----
+        bool isOidField = false;
+        for (const auto& f : OID_FIELDS) {
+            if (key == f.key) {
+                m_oids.*(f.member) = value;
+                loadedAnything = true;
+                isOidField = true;
+                break;
+            }
+        }
+        if (isOidField) continue;
+
+        // ---- сложные поля ----
+        if (const auto* f = findValueSetField(key)) {
+            std::string fullBlock = utils::readMultilineBracedBlock(file, value);
+            if (!parseFieldValueSet(fullBlock, m_definedFields.*(f->member))) {
+                // lastError уже установлен в parseFieldValueSet
+                return false;
+            }
             loadedAnything = true;
             continue;
         }
 
-        // сложные поля со списком значений
-        if (key == "batteryStatusValues") {
-            std::string full = utils::readMultilineBracedBlock(file, value);
-            if (!parseFieldValueSet(full, m_definedFields.batteryStatusSet)) {
-                return false;
-            }
-            loadedAnything = true;
-            continue;
-        }
-        if (key == "outputStatusValues") {
-            std::string full = utils::readMultilineBracedBlock(file, value);
-            if (!parseFieldValueSet(full, m_definedFields.outputStatusSet)) {
-                return false;
-            }
-            loadedAnything = true;
-            continue;
-        }
+        continue;
     }
 
+    // ---- секция не найдена или пуста ----
     if (!loadedAnything) {
         m_lastError = "Section [" + section + "] was not found or empty in: " + fullPath;
         return false;
     }
 
-    // проверка полей
-    if (!validate(section)) return false;
-
-    return true;
+    return validate(section);
 }
 
+// =============================================================
+//  Проверка полей
+// =============================================================
 bool UpsModelConfig::validate(const std::string& section) {
+    // ---- modelName ----
     if (m_modelName.empty()) {
         m_lastError = "Missing required field \"modelName\" in section [" + section + "]";
         return false;
     }
 
-    auto check = [&](const std::string& value, const std::string& name) {
-        if (value.empty()) {
-            m_lastError =
-                "Missing required OID field \"" + name + "\" in section [" + section + "]";
+    // ---- все OID поля ----
+    for (const auto& f : OID_FIELDS) {
+        const std::string& val = m_oids.*(f.member);
+        if (val.empty()) {
+            m_lastError = "Missing required OID field \"" + std::string(f.key) + "\" in section [" +
+                          section + "]";
             return false;
         }
-        return true;
-    };
-
-    if (!check(m_oids.modelNameOID, "modelNameOID")) return false;
-    if (!check(m_oids.inputVoltageOID, "inputVoltageOID")) return false;
-    if (!check(m_oids.inputFreqOID, "inputFreqOID")) return false;
-    if (!check(m_oids.outputVoltageOID, "outputVoltageOID")) return false;
-    if (!check(m_oids.batteryStatusOID, "batteryStatusOID")) return false;
-    if (!check(m_oids.chargeRemainingOID, "chargeRemainingOID")) return false;
-    if (!check(m_oids.batteryTempOID, "batteryTempOID")) return false;
-    if (!check(m_oids.outputStatusOID, "outputStatusOID")) return false;
-
-    if (m_definedFields.batteryStatusSet.nameToValue.empty()) {
-        m_lastError = "Field \"batteryStatusValues\" is missing or empty";
-        return false;
     }
 
-    if (m_definedFields.outputStatusSet.nameToValue.empty()) {
-        m_lastError = "Field \"outputStatusValues\" is missing or empty";
-        return false;
+    // ---- все сложные поля ----
+    for (const auto& f : VALUESET_FIELDS) {
+        const auto& set = m_definedFields.*(f.member);
+        if (set.nameToValue.empty()) {
+            m_lastError = "Field \"" + std::string(f.key) + "\" is missing or empty";
+            return false;
+        }
     }
 
     return true;
 }
 
+// =============================================================
+//  Разбор структуры сложного поля { "Name": 1, "Other": 2 }
+// =============================================================
 bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& out) {
     out.nameToValue.clear();
     out.valueToName.clear();
 
     std::string s = utils::trim(raw);
 
-    if (s.size() < 2 || s.front() != '{' || s.back() != '}') return false;
+    if (s.size() < 2 || s.front() != '{' || s.back() != '}') {
+        m_lastError = "Invalid value-set format: " + raw;
+        return false;
+    }
 
-    s = s.substr(1, s.size() - 2);  // remove {}
+    // удаление внешних фигурных скобок {}
+    s = s.substr(1, s.size() - 2);
 
     std::stringstream ss{s};
     std::string pair;
 
     while (std::getline(ss, pair, ',')) {
         auto pos = pair.find(':');
-        if (pos == std::string::npos) return false;
+        if (pos == std::string::npos) {
+            m_lastError = "Invalid value-set entry: " + pair;
+            return false;
+        }
 
         std::string name = utils::trim(pair.substr(0, pos));
         std::string val = utils::trim(pair.substr(pos + 1));
 
-        // remove quotes
+        // ---- remove quotes ----
         if (name.size() >= 2 && name.front() == '"' && name.back() == '"')
             name = name.substr(1, name.size() - 2);
 
         int number = 0;
         try {
             number = std::stoi(val);
-        } catch (const std::exception&) {
-            m_lastError = "Invalid integer value in enum: '" + val + "'";
+        } catch (...) {
+            m_lastError = "Invalid integer in value-set: '" + val + "'";
             return false;
         }
 
         out.nameToValue[name] = number;
         out.valueToName[number] = name;
     }
+
     return true;
 }
 
+// =============================================================
+//  Getters
+// =============================================================
 const std::string& UpsModelConfig::modelName() const { return m_modelName; }
-
 const UpsOids& UpsModelConfig::oids() const { return m_oids; }
-
 const FieldValueSets& UpsModelConfig::definedFields() const { return m_definedFields; }
-
 const std::string& UpsModelConfig::lastError() const { return m_lastError; }
