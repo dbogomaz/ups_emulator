@@ -1,5 +1,6 @@
-#include <gtest/gtest.h>
 #include "ups_model_config.h"
+
+#include <gtest/gtest.h>
 
 const std::string dataDir = std::string(TEST_DATA_DIR) + "/ups_model_config";
 
@@ -80,7 +81,6 @@ TEST(UpsModelConfigTest, InvalidEnumValueOutputStatus) {
     EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos);
 }
 
-
 // Параметр без знака равенства
 TEST(UpsModelConfigTest, LineWithoutEqualIsIgnored) {
     UpsModelConfig cfg;
@@ -119,9 +119,37 @@ TEST(UpsModelConfigTest, MissingBatteryStatusValues) {
     EXPECT_NE(cfg.lastError().find("batteryStatusValues"), std::string::npos);
 }
 
+// Некорректный формат value-set (отсутствуют фигурные скобки)
 TEST(UpsModelConfigTest, InvalidValueSet_NoBraces) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/bad_valueset_nobraces.ini", "APC");
     EXPECT_FALSE(ok);
     EXPECT_NE(cfg.lastError().find("Invalid value-set format"), std::string::npos);
+}
+
+// Некорректный формат value-set (отсутствует закрывающая фигурная скобка)
+TEST(UpsModelConfigTest, ValueSetMissingClosingBrace) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/bad_valueset_missing_closing.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("brace"), std::string::npos)
+        << "Expected error about missing closing brace, got: " << cfg.lastError();
+}
+
+// Некорректный формат value-set (лишняя закрывающая фигурная скобка)
+TEST(UpsModelConfigTest, ValueSetExtraClosingBrace) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/bad_valueset_extra_closing.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("brace"), std::string::npos)
+        << "Expected error about extra closing brace, got: " << cfg.lastError();
+}
+
+// Некорректный формат value-set (отсутствует запятая между записями)
+TEST(UpsModelConfigTest, ValueSetMissingComma) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/bad_valueset_missing_comma.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("entry"), std::string::npos)
+        << "Expected error about malformed entry (missing comma), got: " << cfg.lastError();
 }
