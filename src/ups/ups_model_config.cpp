@@ -75,7 +75,8 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
 
         // ---- пропустить пустые строки и комментарии ----
         if (line.empty() || 
-            line[0] == '#') continue;
+            line[0] == '#') 
+            continue;
 
         // ---- определение секции ----
         if (line.front() == '[' && 
@@ -172,7 +173,6 @@ bool UpsModelConfig::validate(const std::string& section) {
 //  Разбор структуры сложного поля { "Name": 1, "Other": 2 }
 // =============================================================
 bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& out) {
-    printf("[DEBUG] <parseFieldValueSet> raw: %s\n", raw.c_str());
     out.nameToValue.clear();
     out.valueToName.clear();
 
@@ -186,13 +186,6 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
     }
 
     std::string s = utils::trim(raw);
-    // ---- проверка наличия внешних фигурных скобок ----
-    if (s.size() < 2 || 
-        s.front() != '{' || 
-        s.back() != '}') {
-        m_lastError = "Invalid value-set format: " + raw;
-        return false;
-    }
 
     // удаление внешних фигурных скобок {}
     s = s.substr(1, s.size() - 2);

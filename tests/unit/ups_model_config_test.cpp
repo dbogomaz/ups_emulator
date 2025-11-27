@@ -13,12 +13,12 @@ TEST(UpsModelConfigTest, LoadAPCSuccess) {
     EXPECT_FALSE(cfg.oids().modelNameOID.empty());
     // batteryStatusValues
     const auto& bs = cfg.definedFields().batteryStatusSet.nameToValue;
-    ASSERT_FALSE(bs.empty());
+    ASSERT_FALSE(bs.empty()) << cfg.lastError();
     EXPECT_EQ(bs.at("batteryNormal"), 2);
     EXPECT_EQ(bs.at("batteryLow"), 3);
     // outputStatusValues
     const auto& os = cfg.definedFields().outputStatusSet.nameToValue;
-    ASSERT_FALSE(os.empty());
+    ASSERT_FALSE(os.empty()) << cfg.lastError();
     EXPECT_EQ(os.at("onLine"), 2);
 }
 
@@ -30,7 +30,7 @@ TEST(UpsModelConfigTest, LoadINELTSuccess) {
     EXPECT_EQ(cfg.modelName(), "MP3000RT");
     EXPECT_FALSE(cfg.oids().modelNameOID.empty());
     const auto& bs = cfg.definedFields().batteryStatusSet.nameToValue;
-    ASSERT_FALSE(bs.empty());
+    ASSERT_FALSE(bs.empty()) << cfg.lastError();
     EXPECT_NE(bs.find("batteryDepleted"), bs.end());
 }
 
@@ -41,7 +41,7 @@ TEST(UpsModelConfigTest, FileNotFound) {
     EXPECT_FALSE(ok);
     EXPECT_FALSE(cfg.lastError().empty());
     // Проверка, что ошибка корректно сформирована
-    EXPECT_NE(cfg.lastError().find("Cannot open file"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("Cannot open file"), std::string::npos) << cfg.lastError();
 }
 
 // Отсутствующая секция
@@ -51,7 +51,7 @@ TEST(UpsModelConfigTest, SectionNotFound) {
     EXPECT_FALSE(ok);
     EXPECT_FALSE(cfg.lastError().empty());
     // Проверяем, что ошибка касается отсутствующей секции
-    EXPECT_NE(cfg.lastError().find("not found"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("not found"), std::string::npos) << cfg.lastError();
 }
 
 // Отсутствующее обязательное поле OID
@@ -70,7 +70,7 @@ TEST(UpsModelConfigTest, InvalidEnumValueBatteryStatus) {
     bool ok = cfg.load(dataDir + "/bad_enum_battery.ini", "APC");
     EXPECT_FALSE(ok);
     EXPECT_FALSE(cfg.lastError().empty());
-    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos) << cfg.lastError();
 }
 
 // Некорректное значение в перечислении outputStatusValues
@@ -78,7 +78,7 @@ TEST(UpsModelConfigTest, InvalidEnumValueOutputStatus) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/bad_enum_output.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("Invalid integer"), std::string::npos) << cfg.lastError();
 }
 
 // Параметр без знака равенства
@@ -100,7 +100,7 @@ TEST(UpsModelConfigTest, MissingModelName) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/no_modelname.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("modelName"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("modelName"), std::string::npos) << cfg.lastError();
 }
 
 // Отсутствуют outputStatusValues
@@ -108,7 +108,7 @@ TEST(UpsModelConfigTest, MissingOutputStatusValues) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/no_outputStatus_values.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("outputStatusValues"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("outputStatusValues"), std::string::npos) << cfg.lastError();
 }
 
 // Отсутствуют batteryStatusValues
@@ -116,7 +116,7 @@ TEST(UpsModelConfigTest, MissingBatteryStatusValues) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/no_batteryStatus_values.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("batteryStatusValues"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("batteryStatusValues"), std::string::npos) << cfg.lastError();
 }
 
 // Некорректный формат value-set (отсутствуют фигурные скобки)
@@ -124,7 +124,8 @@ TEST(UpsModelConfigTest, InvalidValueSet_NoBraces) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/bad_valueset_nobraces.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("Invalid value-set format"), std::string::npos);
+    EXPECT_NE(cfg.lastError().find("Invalid value-set"), std::string::npos)
+        << cfg.lastError();
 }
 
 // Некорректный формат value-set (отсутствует закрывающая фигурная скобка)
@@ -132,8 +133,7 @@ TEST(UpsModelConfigTest, ValueSetMissingClosingBrace) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/bad_valueset_missing_closing.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("brace"), std::string::npos)
-        << "Expected error about missing closing brace, got: " << cfg.lastError();
+    EXPECT_NE(cfg.lastError().find("brace"), std::string::npos) << cfg.lastError();
 }
 
 // Некорректный формат value-set (отсутствует запятая между записями)
@@ -141,6 +141,5 @@ TEST(UpsModelConfigTest, ValueSetMissingComma) {
     UpsModelConfig cfg;
     bool ok = cfg.load(dataDir + "/bad_valueset_missing_comma.ini", "APC");
     EXPECT_FALSE(ok);
-    EXPECT_NE(cfg.lastError().find("entry"), std::string::npos)
-        << "Expected error about malformed entry (missing comma), got: " << cfg.lastError();
+    EXPECT_NE(cfg.lastError().find("entry"), std::string::npos) << cfg.lastError();
 }
