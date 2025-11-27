@@ -27,8 +27,8 @@ using ErrorMessage = std::string;
 
 // Тип параметра UPS
 enum class UpsParameterType {
-    Integer,   // Числовой параметр (напряжение, частота, температура)
-    String     // Текстовый параметр (имя модели)
+    Integer,  // Числовой параметр (напряжение, частота, температура)
+    String    // Текстовый параметр (имя модели)
 };
 
-#endif // UPS_TYPES_H
+#endif  // UPS_TYPES_H

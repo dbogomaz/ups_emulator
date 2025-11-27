@@ -7,20 +7,20 @@
 // Класс для загрузки и хранения конфигурации модели UPS из INI файла
 class UpsModelConfig {
 public:
-    bool load(const std::string& path, const std::string& section);
+    bool load(const std::string& path, const IniSectionName& section);
 
-    const std::string& modelName() const;
+    const ModelName& modelName() const;
     const UpsOids& oids() const;
     const FieldValueSets& definedFields() const;
-    const std::string& lastError() const;
+    const ErrorMessage& lastError() const;
 
 private:
-    std::string m_modelName{};
+    ModelName m_modelName{};
     UpsOids m_oids{};
     FieldValueSets m_definedFields{};
-    std::string m_lastError{};
+    ErrorMessage m_lastError{};
 
-    bool validate(const std::string& section);
+    bool validate(const IniSectionName& section);
     bool parseFieldValueSet(const std::string& raw, FieldValueSet& out);
 };
 
