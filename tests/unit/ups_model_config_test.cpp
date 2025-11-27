@@ -119,3 +119,9 @@ TEST(UpsModelConfigTest, MissingBatteryStatusValues) {
     EXPECT_NE(cfg.lastError().find("batteryStatusValues"), std::string::npos);
 }
 
+TEST(UpsModelConfigTest, InvalidValueSet_NoBraces) {
+    UpsModelConfig cfg;
+    bool ok = cfg.load(dataDir + "/bad_valueset_nobraces.ini", "APC");
+    EXPECT_FALSE(ok);
+    EXPECT_NE(cfg.lastError().find("Invalid value-set format"), std::string::npos);
+}

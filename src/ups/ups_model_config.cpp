@@ -73,10 +73,12 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         line = utils::trim(line);
 
         // ---- пропустить пустые строки и комментарии ----
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || 
+            line[0] == '#') continue;
 
         // ---- определение секции ----
-        if (line.front() == '[' && line.back() == ']') {
+        if (line.front() == '[' && 
+            line.back() == ']') {
             std::string sec = line.substr(1, line.size() - 2);
             inSection = (sec == section);
             continue;
@@ -174,7 +176,9 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
 
     std::string s = utils::trim(raw);
 
-    if (s.size() < 2 || s.front() != '{' || s.back() != '}') {
+    if (s.size() < 2 || 
+        s.front() != '{' || 
+        s.back() != '}') {
         m_lastError = "Invalid value-set format: " + raw;
         return false;
     }
@@ -196,7 +200,9 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
         std::string val = utils::trim(pair.substr(pos + 1));
 
         // ---- remove quotes ----
-        if (name.size() >= 2 && name.front() == '"' && name.back() == '"')
+        if (name.size() >= 2 && 
+            name.front() == '"' && 
+            name.back() == '"')
             name = name.substr(1, name.size() - 2);
 
         int number = 0;

@@ -24,7 +24,8 @@ std::string readMultilineBracedBlock(std::ifstream& file, const std::string& fir
     while (std::getline(file, line)) {
         line = utils::trim(line);
 
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || 
+            line[0] == '#') continue;
 
         result += " " + line;
 
