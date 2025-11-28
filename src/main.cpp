@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "ups_data_store.h"
 #include "ups_model_config.h"
 
 int main() {
@@ -10,7 +11,7 @@ int main() {
         std::cout << "Error: " << cfg.lastError() << "\n";
         return 1;
     }
-
+#if 0
     std::cout << "=== UPS Model Config Loaded ===\n\n";
 
     std::cout << "Model name           : " << cfg.modelName() << "\n";
@@ -43,6 +44,51 @@ int main() {
         std::cout << "  " << it->first << " = " << it->second << "\n";
     }
     std::cout << "\n";
+#endif
+
+    // ========================== Инициализация UpsDataStore ==========================
+    UpsDataStore store;
+    if (!store.init(cfg)) {
+        std::cout << "Failed to init UpsDataStore\n";
+        return 1;
+    }
+
+    auto printParameter = [&store](const Oid& oid) {
+        const UpsParameter* p = store.get(oid);
+        if (p) {
+            std::cout << "Parameter: " << p->name << " OID: " << p->oid << " value: " << p->value
+                      << "\n";
+        } else {
+            std::cout << "Parameter with OID " << oid << " not found\n";
+        }
+    };
+
+    Oid testOid;
+    ErrorMessage err;
+
+    auto testSetParameter = [&store, &printParameter, &err](const Oid& oid,
+                                                            const UpsParameterValue& value) {
+        store.set(oid, value, &err);
+        printf("Setting value: \"%s\"\n", value.c_str());
+        printParameter(oid);
+        if (!err.empty()) {
+            std::cout << "Error setting parameter: " << err << "\n";
+            err.clear();
+        }
+        printf("\n");
+    };
+
+    // testSetParameter(cfg.oids().modelNameOID, "New Model 123");
+    // testSetParameter(cfg.oids().inputVoltageOID, "220");
+    // testSetParameter(cfg.oids().inputFreqOID, "50");
+    // testSetParameter(cfg.oids().outputVoltageOID, "bad_value_not_int");  // Ошибка
+    testSetParameter(cfg.oids().batteryStatusOID, "batteryNormal");
+    testSetParameter(cfg.oids().batteryStatusOID, "bad_value");  // Ошибка
+    testSetParameter(cfg.oids().batteryStatusOID, "2");
+    testSetParameter(cfg.oids().batteryStatusOID, "0"); // Ошибка
+
+
+
 
     return 0;
 }

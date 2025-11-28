@@ -39,7 +39,6 @@ TEST(UpsDataStoreStandaloneTest, Init_Fails_On_Empty_Model) {
     EXPECT_FALSE(store.init(cfg, &err));
 }
 
-
 // ---------------------------------------------------------------
 // has()
 // ---------------------------------------------------------------
@@ -54,7 +53,6 @@ TEST_F(UpsDataStoreTest, Has_ReturnsTrueForExistingOid) {
 TEST_F(UpsDataStoreTest, Has_ReturnsFalseForUnknownOid) {
     EXPECT_FALSE(store.has("1.2.3.4.5.6.7.8.9"));
 }
-
 
 // ---------------------------------------------------------------
 // get()
@@ -72,7 +70,6 @@ TEST_F(UpsDataStoreTest, Get_ReturnsNullForUnknown) {
     EXPECT_EQ(p, nullptr);
 }
 
-
 // ---------------------------------------------------------------
 // set() — Integer параметры
 // ---------------------------------------------------------------
@@ -85,7 +82,6 @@ TEST_F(UpsDataStoreTest, Set_Integer_RejectsNonNumber) {
     EXPECT_FALSE(store.set(cfg.oids().inputFreqOID, "abc", &err));
 }
 
-
 // ---------------------------------------------------------------
 // set() — String параметр
 // ---------------------------------------------------------------
@@ -94,21 +90,21 @@ TEST_F(UpsDataStoreTest, Set_String_AcceptsAnything) {
     EXPECT_TRUE(store.set(cfg.oids().modelNameOID, "New Model Name", &err));
 }
 
-
 // ---------------------------------------------------------------
-// set() — enumerated параметры
+// set() — сложные параметры, которые имеют набор допустимых значений
 // ---------------------------------------------------------------
 // Установка значений для сложного параметра batteryStatus
 TEST_F(UpsDataStoreTest, Set_ValueSet_AcceptsNumericValue) {
     const Oid& oid = cfg.oids().batteryStatusOID;
     int anyValue = cfg.definedFields().batteryStatusSet.nameToValue.begin()->second;
-    EXPECT_TRUE(store.set(oid, std::to_string(anyValue), &err));
+    EXPECT_TRUE(store.set(oid, std::to_string(anyValue), &err))
+        << "Failed to set numeric value" << err;
 }
 // Установка именованного значения для сложного параметра batteryStatus
 TEST_F(UpsDataStoreTest, Set_ValueSet_AcceptsNameValue) {
     const Oid& oid = cfg.oids().batteryStatusOID;
     std::string anyName = cfg.definedFields().batteryStatusSet.nameToValue.begin()->first;
-    EXPECT_TRUE(store.set(oid, anyName, &err));
+    EXPECT_TRUE(store.set(oid, anyName, &err)) << "Failed to set named value" << err;
 }
 // Попытка установить некорректное числовое значение для сложного параметра
 TEST_F(UpsDataStoreTest, Set_ValueSet_RejectsInvalidNumber) {
