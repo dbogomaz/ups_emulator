@@ -29,15 +29,22 @@ bool UpsDataStore::init(const UpsModelConfig& cfg, ErrorMessage* err) {
     };
 
     // ---- Добавление всех базовых параметров ----
-    if (!addParam(oids.modelNameOID, "modelName", UpsParameterType::String)) return false;
-    if (!addParam(oids.inputVoltageOID, "inputVoltage", UpsParameterType::Integer)) return false;
-    if (!addParam(oids.inputFreqOID, "inputFreq", UpsParameterType::Integer)) return false;
-    if (!addParam(oids.outputVoltageOID, "outputVoltage", UpsParameterType::Integer)) return false;
-    if (!addParam(oids.batteryStatusOID, "batteryStatus", UpsParameterType::Integer)) return false;
+    if (!addParam(oids.modelNameOID, "modelName", UpsParameterType::String)) 
+        return false;
+    if (!addParam(oids.inputVoltageOID, "inputVoltage", UpsParameterType::Integer)) 
+        return false;
+    if (!addParam(oids.inputFreqOID, "inputFreq", UpsParameterType::Integer)) 
+        return false;
+    if (!addParam(oids.outputVoltageOID, "outputVoltage", UpsParameterType::Integer)) 
+        return false;
+    if (!addParam(oids.batteryStatusOID, "batteryStatus", UpsParameterType::Integer)) 
+        return false;
     if (!addParam(oids.chargeRemainingOID, "chargeRemaining", UpsParameterType::Integer))
         return false;
-    if (!addParam(oids.batteryTempOID, "batteryTemp", UpsParameterType::Integer)) return false;
-    if (!addParam(oids.outputStatusOID, "outputStatus", UpsParameterType::Integer)) return false;
+    if (!addParam(oids.batteryTempOID, "batteryTemp", UpsParameterType::Integer)) 
+        return false;
+    if (!addParam(oids.outputStatusOID, "outputStatus", UpsParameterType::Integer)) 
+        return false;
 
     // ---- Добавление наборов допустимых значений (ValueSets) ----
     const FieldValueSets& sets = cfg.definedFields();
@@ -146,5 +153,11 @@ bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMess
         return true;
     }
 
+    // LCOV_EXCL_START
+    // Это заглушка — сюда не должны попадать
+    if (err)
+        *err = "Internal error: unsupported parameter type";
     return false;
+    // LCOV_EXCL_STOP
+
 }
