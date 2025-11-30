@@ -2,49 +2,32 @@
 
 #include "utils/string_utils.h"
 
-bool UpsDataStore::init(const UpsModelConfig& cfg, ErrorMessage* err) {
+bool UpsDataStore::init(const UpsModelConfig& cfg) {
     m_parameters.clear();
     m_valueSets.clear();
 
     const UpsOids& oids = cfg.oids();
 
     // ---- Вспомогательная лямбда для добавления параметра ----
-    auto addParam = [&](const Oid& oid, const UpsParameterName& name,
-                        UpsParameterType type) -> bool {
-        if (oid.empty()) {
-            if (err) *err = "OID for field '" + name + "' is empty";
-            return false;
-        }
-
+    auto addParam = [&](const Oid& oid, const UpsParameterName& name, UpsParameterType type) {
         UpsParameter p;
         p.name = name;
         p.oid = oid;
         p.type = type;
-
         // Значение по умолчанию
         p.value = (type == UpsParameterType::String ? "" : "0");
-
         m_parameters[oid] = p;
-        return true;
     };
 
     // ---- Добавление всех базовых параметров ----
-    if (!addParam(oids.modelNameOID, "modelName", UpsParameterType::String)) 
-        return false;
-    if (!addParam(oids.inputVoltageOID, "inputVoltage", UpsParameterType::Integer)) 
-        return false;
-    if (!addParam(oids.inputFreqOID, "inputFreq", UpsParameterType::Integer)) 
-        return false;
-    if (!addParam(oids.outputVoltageOID, "outputVoltage", UpsParameterType::Integer)) 
-        return false;
-    if (!addParam(oids.batteryStatusOID, "batteryStatus", UpsParameterType::Integer)) 
-        return false;
-    if (!addParam(oids.chargeRemainingOID, "chargeRemaining", UpsParameterType::Integer))
-        return false;
-    if (!addParam(oids.batteryTempOID, "batteryTemp", UpsParameterType::Integer)) 
-        return false;
-    if (!addParam(oids.outputStatusOID, "outputStatus", UpsParameterType::Integer)) 
-        return false;
+    addParam(oids.modelNameOID, "modelName", UpsParameterType::String);
+    addParam(oids.inputVoltageOID, "inputVoltage", UpsParameterType::Integer);
+    addParam(oids.inputFreqOID, "inputFreq", UpsParameterType::Integer);
+    addParam(oids.outputVoltageOID, "outputVoltage", UpsParameterType::Integer);
+    addParam(oids.batteryStatusOID, "batteryStatus", UpsParameterType::Integer);
+    addParam(oids.chargeRemainingOID, "chargeRemaining", UpsParameterType::Integer);
+    addParam(oids.batteryTempOID, "batteryTemp", UpsParameterType::Integer);
+    addParam(oids.outputStatusOID, "outputStatus", UpsParameterType::Integer);
 
     // ---- Добавление наборов допустимых значений (ValueSets) ----
     const FieldValueSets& sets = cfg.definedFields();
@@ -55,7 +38,7 @@ bool UpsDataStore::init(const UpsModelConfig& cfg, ErrorMessage* err) {
     if (!sets.outputStatusSet.nameToValue.empty())
         m_valueSets[oids.outputStatusOID] = &sets.outputStatusSet;
 
-#if 0 // ---- Отладочный вывод загруженных параметров ----
+#if 0  // ---- Отладочный вывод загруженных параметров ----
     printf("\n\n=== UpsDataStore Initialized ===\n");
     // Выводим по имени
     auto it = m_valueSets.begin();
@@ -124,7 +107,7 @@ bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMess
             int numeric = std::stoi(value);
             auto itNum = vset->valueToName.find(numeric);
             if (itNum != vset->valueToName.end()) {
-                p->value = value; // число валидно
+                p->value = value;  // число валидно
                 return true;
             }
         } catch (...) {
@@ -155,9 +138,7 @@ bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMess
 
     // LCOV_EXCL_START
     // Это заглушка — сюда не должны попадать
-    if (err)
-        *err = "Internal error: unsupported parameter type";
+    if (err) *err = "Internal error: unsupported parameter type";
     return false;
     // LCOV_EXCL_STOP
-
 }

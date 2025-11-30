@@ -10,7 +10,7 @@
 class UpsDataStore {
 public:
     // Инициализация хранилища по конфигурации
-    bool init(const UpsModelConfig& cfg, ErrorMessage* err = nullptr);
+    bool init(const UpsModelConfig& cfg);
 
     // Проверить, существует ли параметр с данным OID
     bool has(const Oid& oid) const;

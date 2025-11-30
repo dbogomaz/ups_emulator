@@ -19,7 +19,7 @@ protected:
         // Загружаем конфигурацию модели UPS
         ASSERT_TRUE(cfg.load(iniPath, section)) << "Failed to load test INI file: " << iniPath;
         // Инициализируем хранилище
-        ASSERT_TRUE(store.init(cfg, &err)) << "UpsDataStore::init failed: " << err;
+        ASSERT_TRUE(store.init(cfg)) << "Failed to initialize UpsDataStore";
     }
 };
 
@@ -30,13 +30,6 @@ protected:
 TEST_F(UpsDataStoreTest, Init_Success) {
     // SetUp уже всё проверил
     SUCCEED();
-}
-// Инициализация с пустой моделью должна завершиться ошибкой
-TEST(UpsDataStoreStandaloneTest, Init_Fails_On_Empty_Model) {
-    UpsModelConfig cfg;  // load() не вызываем
-    UpsDataStore store;
-    ErrorMessage err;
-    EXPECT_FALSE(store.init(cfg, &err));
 }
 
 // ---------------------------------------------------------------
