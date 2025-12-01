@@ -14,6 +14,7 @@ add_compile_definitions(TEST_DATA_DIR=\"${TEST_DATA_DIR}\")
 # ===== Добавление тестов =====
 add_ups_test(ups_model_config_test
     unit/ups_model_config_test.cpp
+    unit/ups_model_config/test_load_errors.cpp
     unit/ups_model_config/test_load_success.cpp
 )
 
