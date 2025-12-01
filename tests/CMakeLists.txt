@@ -26,6 +26,10 @@ add_ups_test(ups_data_store_test
     unit/ups_data_store_test.cpp
 )
 
+add_ups_test(snmp_codec_test
+    unit/snmp_codec/test_decode_basic.cpp
+)
+
 add_subdirectory(googletest)
 
 if (BUILD_COVERAGE)
