@@ -30,6 +30,7 @@ endif()
 
 if(1) # UPS CORE LIBRARY BLOCK
     set(UPS_CORE_SRC
+        src/ups/ups_data_store.cpp
         src/ups/ups_model_config.cpp
 
         src/utils/fs_utils.cpp

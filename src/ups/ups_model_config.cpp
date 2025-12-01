@@ -12,7 +12,7 @@
 // =============================================================
 struct OidFieldInfo {
     const char* key;
-    std::string UpsOids::* member;
+    std::string UpsOids::* field;
 };
 
 static const OidFieldInfo OID_FIELDS[] = {
@@ -31,7 +31,7 @@ static const OidFieldInfo OID_FIELDS[] = {
 // =============================================================
 struct ValueSetFieldInfo {
     const char* key;
-    FieldValueSet FieldValueSets::* member;
+    FieldValueSet FieldValueSets::* field;
 };
 
 static const ValueSetFieldInfo VALUESET_FIELDS[] = {
@@ -52,7 +52,7 @@ static const ValueSetFieldInfo* findValueSetField(const std::string& key) {
 // =============================================================
 //  Основная загрузка INI-секции
 // =============================================================
-bool UpsModelConfig::load(const std::string& path, const std::string& section) {
+bool UpsModelConfig::load(const std::string& path, const IniSectionName& section) {
     m_modelName.clear();
     m_oids = UpsOids{};
     m_definedFields = FieldValueSets{};
@@ -81,7 +81,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         // ---- определение секции ----
         if (line.front() == '[' && 
             line.back() == ']') {
-            std::string sec = line.substr(1, line.size() - 2);
+            IniSectionName sec = line.substr(1, line.size() - 2);
             inSection = (sec == section);
             continue;
         }
@@ -92,8 +92,8 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         if (eq == std::string::npos) continue;
 
         // если дошли до сюда, то есть key=value
-        std::string key = utils::trim(line.substr(0, eq));
-        std::string value = utils::trim(line.substr(eq + 1));
+        UpsParameterName key = utils::trim(line.substr(0, eq));
+        UpsParameterValue value = utils::trim(line.substr(eq + 1));
 
         // ---- modelName ----
         if (key == "modelName") {
@@ -106,7 +106,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         bool isOidField = false;
         for (const auto& f : OID_FIELDS) {
             if (key == f.key) {
-                m_oids.*(f.member) = value;
+                m_oids.*(f.field) = value;
                 loadedAnything = true;
                 isOidField = true;
                 break;
@@ -117,7 +117,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
         // ---- сложные поля ----
         if (const auto* f = findValueSetField(key)) {
             std::string fullBlock = utils::readMultilineBracedBlock(file, value);
-            if (!parseFieldValueSet(fullBlock, m_definedFields.*(f->member))) {
+            if (!parseFieldValueSet(fullBlock, m_definedFields.*(f->field))) {
                 // lastError уже установлен в parseFieldValueSet
                 return false;
             }
@@ -140,7 +140,7 @@ bool UpsModelConfig::load(const std::string& path, const std::string& section) {
 // =============================================================
 //  Проверка полей
 // =============================================================
-bool UpsModelConfig::validate(const std::string& section) {
+bool UpsModelConfig::validate(const IniSectionName& section) {
     // ---- modelName ----
     if (m_modelName.empty()) {
         m_lastError = "Missing required field \"modelName\" in section [" + section + "]";
@@ -149,7 +149,7 @@ bool UpsModelConfig::validate(const std::string& section) {
 
     // ---- все OID поля ----
     for (const auto& f : OID_FIELDS) {
-        const std::string& val = m_oids.*(f.member);
+        const Oid& val = m_oids.*(f.field);
         if (val.empty()) {
             m_lastError = "Missing required OID field \"" + std::string(f.key) + "\" in section [" +
                           section + "]";
@@ -159,7 +159,7 @@ bool UpsModelConfig::validate(const std::string& section) {
 
     // ---- все сложные поля ----
     for (const auto& f : VALUESET_FIELDS) {
-        const auto& set = m_definedFields.*(f.member);
+        const auto& set = m_definedFields.*(f.field);
         if (set.nameToValue.empty()) {
             m_lastError = "Field \"" + std::string(f.key) + "\" is missing or empty";
             return false;
@@ -232,7 +232,7 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
 // =============================================================
 //  Getters
 // =============================================================
-const std::string& UpsModelConfig::modelName() const { return m_modelName; }
+const ModelName& UpsModelConfig::modelName() const { return m_modelName; }
 const UpsOids& UpsModelConfig::oids() const { return m_oids; }
 const FieldValueSets& UpsModelConfig::definedFields() const { return m_definedFields; }
-const std::string& UpsModelConfig::lastError() const { return m_lastError; }
+const ErrorMessage& UpsModelConfig::lastError() const { return m_lastError; }
