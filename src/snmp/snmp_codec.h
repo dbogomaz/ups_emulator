@@ -61,6 +61,8 @@ private:
                          std::string& outStr, std::string& err);
     bool readSequence(const uint8_t*& p, const uint8_t* end,
                       const uint8_t*& seqEnd, std::string& err);
+    bool readPdu(const uint8_t*& p, const uint8_t* end, 
+                 const uint8_t*& pduEnd, std::string& err);
     bool readOid(const uint8_t*& p, const uint8_t* end,
                  std::string& outOid, std::string& err);
     bool readVarBind(const uint8_t*& p, const uint8_t* end,

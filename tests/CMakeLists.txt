@@ -28,6 +28,7 @@ add_ups_test(ups_data_store_test
 
 add_ups_test(snmp_codec_test
     unit/snmp_codec/test_decode_basic.cpp
+    unit/snmp_codec/test_decode_errors.cpp
 )
 
 add_subdirectory(googletest)

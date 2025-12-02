@@ -1,15 +1,12 @@
 #include "snmp/snmp_codec.h"
 #include <cstdio>   // временно для отладки (потом уберём)
 
-
-bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size,
-                                       SnmpGetRequest& outReq,
-                                       std::string* errPtr)
-{
+bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGetRequest& outReq,
+                                       std::string* errPtr) {
     std::string err;
-    const uint8_t* p   = data;
+    const uint8_t* p = data;
     const uint8_t* end = data + size;
-    
+
     // 1) Top-level SEQUENCE (Message)
     const uint8_t* msgEnd = nullptr;
     if (!readSequence(p, end, msgEnd, err)) {
@@ -35,24 +32,13 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size,
     }
 
     // 4) GetRequest PDU tag
-    if (!readTag(p, msgEnd, TAG_GETREQUEST, err)) {
+    const uint8_t* pduEnd = nullptr;
+    if (!readPdu(p, msgEnd, pduEnd, err)) {
         if (errPtr) *errPtr = err;
         return false;
     }
 
-    // 5) PDU length (after A0 tag)
-    size_t pduLen = 0;
-    if (!readLength(p, msgEnd, pduLen, err)) {
-        if (errPtr) *errPtr = err;
-        return false;
-    }
-    const uint8_t* pduEnd = p + pduLen;
-    if (pduEnd > msgEnd) {
-        if (errPtr) *errPtr = "PDU length exceeds message bounds";
-        return false;
-    }
-
-    // 6) request-id INTEGER
+    // 5) request-id INTEGER
     int requestId = 0;
     if (!readInteger(p, pduEnd, requestId, err)) {
         if (errPtr) *errPtr = err;
@@ -60,28 +46,28 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size,
     }
     outReq.requestId = requestId;
 
-    // 7) error-status INTEGER
+    // 6) error-status INTEGER
     int errorStatus = 0;
     if (!readInteger(p, pduEnd, errorStatus, err)) {
         if (errPtr) *errPtr = err;
         return false;
     }
 
-    // 8) error-index INTEGER
+    // 7) error-index INTEGER
     int errorIndex = 0;
     if (!readInteger(p, pduEnd, errorIndex, err)) {
         if (errPtr) *errPtr = err;
         return false;
     }
 
-    // 9) VarBindList SEQUENCE
+    // 8) VarBindList SEQUENCE
     const uint8_t* vblEnd = nullptr;
     if (!readSequence(p, pduEnd, vblEnd, err)) {
         if (errPtr) *errPtr = err;
         return false;
     }
 
-    // 10) Parse varbinds
+    // 9) Parse varbinds
     while (p < vblEnd) {
         std::string oid;
         if (!readVarBind(p, vblEnd, oid, err)) {
@@ -93,10 +79,6 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size,
 
     return true;
 }
-
-
-
-
 
 // ============================================================
 // encodeGetResponse (SNMPv1)
@@ -296,7 +278,8 @@ bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end,
     if (!readLength(p, end, len, err))
         return false;
 
-    if (p + len > end) {
+    if (p + len > end || 
+        len == 0) {
         err = "INTEGER content exceeds buffer";
         return false;
     }
@@ -325,7 +308,7 @@ bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end,
         return false;
 
     if (p + len > end) {
-        err = "OCTET STRING exceeds buffer";
+        err = "OCTET STRING length exceeds buffer";
         return false;
     }
 
@@ -358,6 +341,32 @@ bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end,
 
     return true;
 }
+
+
+// ------------------------------------------------------------
+// readSequence: читает PDU и возвращает pduEnd
+// ------------------------------------------------------------
+bool snmp::SnmpCodec::readPdu(const uint8_t*& p, const uint8_t* end,
+                                   const uint8_t*& pduEnd, std::string& err)
+{
+    if (!readTag(p, end, TAG_GETREQUEST, err)) {
+        return false;
+    }
+
+    size_t len = 0;
+    if (!readLength(p, end, len, err)) {
+        return false;
+    }
+    
+    if (p + len > end) {
+        err = "PDU length exceeds message bounds";
+        return false;
+    }
+
+    pduEnd = p + len;
+    return true;
+}
+
 
 // ------------------------------------------------------------
 // readOid: читает ASN.1 OID
