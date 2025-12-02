@@ -1,6 +1,12 @@
 #include "snmp/snmp_codec.h"
 #include <cstdio>   // временно для отладки (потом уберём)
 
+
+
+
+// ============================================================
+// decodeGetRequest (SNMPv1)
+// ============================================================
 bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGetRequest& outReq,
                                        std::string* errPtr) {
     std::string err;
@@ -80,6 +86,7 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGet
     return true;
 }
 
+#if 0
 // ============================================================
 // encodeGetResponse (SNMPv1)
 // ============================================================
@@ -195,7 +202,7 @@ std::vector<uint8_t> snmp::SnmpCodec::encodeGetResponse(
 
     return resp;
 }
-
+#endif
 
 
 // ============================================================
@@ -470,7 +477,7 @@ bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end,
     return true;
 }
 
-
+#if 0
 // ============================================================
 // ASN.1 Encoding helpers
 // ============================================================
@@ -635,3 +642,4 @@ std::vector<uint8_t> snmp::SnmpCodec::encodeVarBind(
 
     return out;
 }
+#endif
