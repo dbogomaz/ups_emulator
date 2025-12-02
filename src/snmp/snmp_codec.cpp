@@ -1,369 +1,628 @@
-#include "snmp_codec.h"
+#include "snmp/snmp_codec.h"
+#include <cstdio>   // временно для отладки (потом уберём)
 
-#include <cstdio>
-#include <cstdlib>
 
-namespace snmp {
+bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size,
+                                       SnmpGetRequest& outReq,
+                                       std::string* errPtr)
+{
+    std::string err;
+    const uint8_t* p   = data;
+    const uint8_t* end = data + size;
+    
+    // 1) Top-level SEQUENCE (Message)
+    const uint8_t* msgEnd = nullptr;
+    if (!readSequence(p, end, msgEnd, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+
+    // 2) version INTEGER
+    int version = 0;
+    if (!readInteger(p, msgEnd, version, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+    if (version != 0) {
+        if (errPtr) *errPtr = "Unsupported SNMP version (expected v1 = 0)";
+        return false;
+    }
+
+    // 3) community (public) OCTET STRING
+    if (!readOctetString(p, msgEnd, outReq.community, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+
+    // 4) GetRequest PDU tag
+    if (!readTag(p, msgEnd, TAG_GETREQUEST, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+
+    // 5) PDU length (after A0 tag)
+    size_t pduLen = 0;
+    if (!readLength(p, msgEnd, pduLen, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+    const uint8_t* pduEnd = p + pduLen;
+    if (pduEnd > msgEnd) {
+        if (errPtr) *errPtr = "PDU length exceeds message bounds";
+        return false;
+    }
+
+    // 6) request-id INTEGER
+    int requestId = 0;
+    if (!readInteger(p, pduEnd, requestId, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+    outReq.requestId = requestId;
+
+    // 7) error-status INTEGER
+    int errorStatus = 0;
+    if (!readInteger(p, pduEnd, errorStatus, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+
+    // 8) error-index INTEGER
+    int errorIndex = 0;
+    if (!readInteger(p, pduEnd, errorIndex, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+
+    // 9) VarBindList SEQUENCE
+    const uint8_t* vblEnd = nullptr;
+    if (!readSequence(p, pduEnd, vblEnd, err)) {
+        if (errPtr) *errPtr = err;
+        return false;
+    }
+
+    // 10) Parse varbinds
+    while (p < vblEnd) {
+        std::string oid;
+        if (!readVarBind(p, vblEnd, oid, err)) {
+            if (errPtr) *errPtr = err;
+            return false;
+        }
+        outReq.oids.push_back(oid);
+    }
+
+    return true;
+}
+
+
+
+
+
+// ============================================================
+// encodeGetResponse (SNMPv1)
+// ============================================================
+std::vector<uint8_t> snmp::SnmpCodec::encodeGetResponse(
+        int requestId,
+        const std::vector<std::string>& oids,
+        const UpsDataStore& store)
+{
+    std::vector<uint8_t> resp;
+
+    // ------------------------------------------------------------
+    // 1) Message SEQUENCE (placeholder)
+    // ------------------------------------------------------------
+    resp.push_back(TAG_SEQUENCE);
+    resp.push_back(0); // length placeholder, we will fill later
+    size_t msgLenPos = resp.size() - 1;
+
+    // ------------------------------------------------------------
+    // 2) version = INTEGER(0)
+    // ------------------------------------------------------------
+    {
+        std::vector<uint8_t> v = encodeInteger(0);
+        resp.insert(resp.end(), v.begin(), v.end());
+    }
+
+    // ------------------------------------------------------------
+    // 3) community string ("public" — as in request)
+    // ------------------------------------------------------------
+    {
+        std::vector<uint8_t> s = encodeString("public");
+        resp.insert(resp.end(), s.begin(), s.end());
+    }
+
+    // ------------------------------------------------------------
+    // 4) GetResponse-PDU [A2]
+    // ------------------------------------------------------------
+    resp.push_back(TAG_GETRESPONSE);
+    resp.push_back(0); // length placeholder
+    size_t pduLenPos = resp.size() - 1;
+
+    // PDU content starts here
+    size_t pduStart = resp.size();
+
+    // ------------------------------------------------------------
+    // 5) request-id INTEGER
+    // ------------------------------------------------------------
+    {
+        std::vector<uint8_t> v = encodeInteger(requestId);
+        resp.insert(resp.end(), v.begin(), v.end());
+    }
+
+    // ------------------------------------------------------------
+    // 6) error-status INTEGER (always 0)
+    // ------------------------------------------------------------
+    {
+        std::vector<uint8_t> v = encodeInteger(0);
+        resp.insert(resp.end(), v.begin(), v.end());
+    }
+
+    // ------------------------------------------------------------
+    // 7) error-index INTEGER (always 0)
+    // ------------------------------------------------------------
+    {
+        std::vector<uint8_t> v = encodeInteger(0);
+        resp.insert(resp.end(), v.begin(), v.end());
+    }
+
+    // ------------------------------------------------------------
+    // 8) VarBindList SEQUENCE
+    // ------------------------------------------------------------
+    resp.push_back(TAG_SEQUENCE);
+    resp.push_back(0); // varbind-list length placeholder
+    size_t vblLenPos = resp.size() - 1;
+
+    size_t vblStart = resp.size();
+
+    // ------------------------------------------------------------
+    // 9) Build each VarBind
+    // ------------------------------------------------------------
+    for (const std::string& oid : oids) {
+
+        const UpsParameter* p = store.get(oid);
+        UpsParameterValue value;
+        UpsParameterType type = UpsParameterType::String;
+
+        bool hasValue = (p != nullptr);
+        if (hasValue) {
+            value = p->value;
+            type = p->type;
+        }
+
+        std::vector<uint8_t> vb =
+            encodeVarBind(oid, hasValue ? value : "", hasValue ? type : UpsParameterType::String);
+
+        resp.insert(resp.end(), vb.begin(), vb.end());
+    }
+
+    // ------------------------------------------------------------
+    // Fix lengths
+    // ------------------------------------------------------------
+
+    // varbind-list length
+    size_t vblLen = resp.size() - vblStart;
+    resp[vblLenPos] = static_cast<uint8_t>(vblLen);
+
+    // PDU length
+    size_t pduLen = resp.size() - pduStart;
+    resp[pduLenPos] = static_cast<uint8_t>(pduLen);
+
+    // message length
+    size_t msgLen = resp.size() - 2; // total minus tag & length
+    resp[msgLenPos] = static_cast<uint8_t>(msgLen);
+
+    return resp;
+}
+
+
+
+// ============================================================
+// ASN.1 Helpers
+// ============================================================
 
 // ------------------------------------------------------------
-// Decode ASN.1 BER length field
+// readTag: читает и проверяет ASN.1 тег
 // ------------------------------------------------------------
-size_t SnmpCodec::decodeLength(const uint8_t*& p, const uint8_t* end) {
-    if (p >= end) return 0;
+bool snmp::SnmpCodec::readTag(const uint8_t*& p, const uint8_t* end,
+                              uint8_t expectedTag, std::string& err)
+{
+    if (p >= end) {
+        err = "Unexpected end of buffer while reading tag";
+        return false;
+    }
+
+    uint8_t tag = *p;
+    if (tag != expectedTag) {
+        char buf[128];
+        std::snprintf(buf, sizeof(buf),
+                      "Invalid tag: expected 0x%02X, got 0x%02X",
+                      expectedTag, tag);
+        err = buf;
+        return false;
+    }
+
+    p++; // consume tag
+    return true;
+}
+
+// ------------------------------------------------------------
+// readLength: читает ASN.1 длину (short/long form)
+// ------------------------------------------------------------
+bool snmp::SnmpCodec::readLength(const uint8_t*& p, const uint8_t* end,
+                                 size_t& outLen, std::string& err)
+{
+    if (p >= end) {
+        err = "Unexpected end of buffer while reading length";
+        return false;
+    }
 
     uint8_t first = *p++;
     if (first < 0x80) {
-        return first;
+        // short form
+        outLen = first;
+        return true;
     }
 
-    int count = first & 0x7F;
+    // long form
+    uint8_t count = first & 0x7F;
+    if (count == 0) {
+        err = "Invalid ASN.1 length: long form with zero count";
+        return false;
+    }
+    if (p + count > end) {
+        err = "Length field exceeds buffer";
+        return false;
+    }
+
     size_t len = 0;
-    while (count-- > 0 && p < end) {
-        len = (len << 8) | *p++;
+    for (uint8_t i = 0; i < count; i++) {
+        len = (len << 8) | (*p++);
     }
-    return len;
+
+    outLen = len;
+    return true;
 }
 
 // ------------------------------------------------------------
-// Encode ASN.1 BER length field
+// readInteger: читает ASN.1 INTEGER
 // ------------------------------------------------------------
-void SnmpCodec::encodeLength(std::vector<uint8_t>& out, size_t len) {
-    if (len < 0x80) {
-        out.push_back((uint8_t)len);
-        return;
-    }
+bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end,
+                                  int& outValue, std::string& err)
+{
+    if (!readTag(p, end, TAG_INTEGER, err))
+        return false;
 
-    uint8_t buf[8];
-    int count = 0;
+    size_t len = 0;
+    if (!readLength(p, end, len, err))
+        return false;
 
-    size_t tmp = len;
-    while (tmp > 0) {
-        buf[count++] = tmp & 0xFF;
-        tmp >>= 8;
-    }
-
-    out.push_back(0x80 | count);
-    for (int i = count - 1; i >= 0; --i) out.push_back(buf[i]);
-}
-
-// ------------------------------------------------------------
-// Parse OID string into integer arcs
-// ------------------------------------------------------------
-std::vector<int> SnmpCodec::parseOidStr(const std::string& oid) {
-    std::vector<int> parts;
-    size_t start = 0;
-
-    while (start < oid.size()) {
-        size_t pos = oid.find('.', start);
-        if (pos == std::string::npos) pos = oid.size();
-        parts.push_back(std::atoi(oid.substr(start, pos - start).c_str()));
-        start = pos + 1;
-    }
-
-    return parts;
-}
-
-// ------------------------------------------------------------
-// Encode ASN.1 OBJECT IDENTIFIER
-// ------------------------------------------------------------
-std::vector<uint8_t> SnmpCodec::encodeOid(const std::string& oidStr) {
-    std::vector<int> parts = parseOidStr(oidStr);
-    std::vector<uint8_t> body;
-
-    if (parts.size() < 2) {
-        // Encode empty OID as 0.0
-        return {0x06, 1, 0};
-    }
-
-    // First byte = 40 * X + Y
-    body.push_back((uint8_t)(parts[0] * 40 + parts[1]));
-
-    // Remaining arcs in base-128
-    for (size_t i = 2; i < parts.size(); ++i) {
-        int v = parts[i];
-        uint8_t buf[8];
-        int count = 0;
-
-        do {
-            buf[count++] = v & 0x7F;
-            v >>= 7;
-        } while (v > 0);
-
-        for (int j = count - 1; j > 0; --j) body.push_back(buf[j] | 0x80);
-
-        body.push_back(buf[0]);
-    }
-
-    std::vector<uint8_t> out;
-    out.push_back(0x06);
-    encodeLength(out, body.size());
-    out.insert(out.end(), body.begin(), body.end());
-    return out;
-}
-
-// ------------------------------------------------------------
-// Encode ASN.1 INTEGER
-// ------------------------------------------------------------
-std::vector<uint8_t> SnmpCodec::encodeInteger(int value) {
-    std::vector<uint8_t> body;
-
-    if (value >= -128 && value <= 127) {
-        body.push_back((uint8_t)value);
-    } else if (value >= -32768 && value <= 32767) {
-        body.push_back((uint8_t)((value >> 8) & 0xFF));
-        body.push_back((uint8_t)(value & 0xFF));
-    } else {
-        body.push_back((uint8_t)((value >> 24) & 0xFF));
-        body.push_back((uint8_t)((value >> 16) & 0xFF));
-        body.push_back((uint8_t)((value >> 8) & 0xFF));
-        body.push_back((uint8_t)(value & 0xFF));
-    }
-
-    std::vector<uint8_t> out;
-    out.push_back(0x02);  // INTEGER tag
-    encodeLength(out, body.size());
-    out.insert(out.end(), body.begin(), body.end());
-    return out;
-}
-
-// ------------------------------------------------------------
-// Encode ASN.1 OCTET STRING
-// ------------------------------------------------------------
-std::vector<uint8_t> SnmpCodec::encodeString(const std::string& value) {
-    std::vector<uint8_t> out;
-    out.push_back(0x04);
-    encodeLength(out, value.size());
-    out.insert(out.end(), value.begin(), value.end());
-    return out;
-}
-
-// ------------------------------------------------------------
-// Encode VarBind
-// ------------------------------------------------------------
-std::vector<uint8_t> SnmpCodec::encodeVarBind(const std::string& oid,
-                                              const UpsParameterValue& value,
-                                              UpsParameterType type) {
-    std::vector<uint8_t> vb;
-
-    // Encode OID
-    std::vector<uint8_t> oidEnc = encodeOid(oid);
-    vb.insert(vb.end(), oidEnc.begin(), oidEnc.end());
-
-    // Encode value depending on type
-    if (type == UpsParameterType::Integer) {
-        int v = std::atoi(value.c_str());
-        std::vector<uint8_t> enc = encodeInteger(v);
-        vb.insert(vb.end(), enc.begin(), enc.end());
-    } else {
-        // String or anything else
-        std::vector<uint8_t> enc = encodeString(value);
-        vb.insert(vb.end(), enc.begin(), enc.end());
-    }
-
-    // Wrap into SEQUENCE
-    std::vector<uint8_t> out;
-    out.push_back(0x30);
-    encodeLength(out, vb.size());
-    out.insert(out.end(), vb.begin(), vb.end());
-    return out;
-}
-
-// ------------------------------------------------------------
-// Decode SNMP GET Request
-// ------------------------------------------------------------
-bool SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGetRequest& outReq,
-                                 std::string* err) {
-    const uint8_t* p = data;
-    const uint8_t* end = data + size;
-
-    // Top-level SEQUENCE
-    if (p >= end || *p++ != 0x30) {
-        if (err) *err = "Not a SEQUENCE";
+    if (p + len > end) {
+        err = "INTEGER content exceeds buffer";
         return false;
     }
 
-    size_t seqLen = decodeLength(p, end);
-    if (p + seqLen > end) {
-        if (err) *err = "Invalid SEQUENCE length";
+    int value = 0;
+    for (size_t i = 0; i < len; i++) {
+        value = (value << 8) | p[i];
+    }
+
+    p += len; // consume value
+    outValue = value;
+    return true;
+}
+
+// ------------------------------------------------------------
+// readOctetString: читает OCTET STRING → outStr
+// ------------------------------------------------------------
+bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end,
+                                      std::string& outStr, std::string& err)
+{
+    if (!readTag(p, end, TAG_OCTETSTRING, err))
+        return false;
+
+    size_t len = 0;
+    if (!readLength(p, end, len, err))
+        return false;
+
+    if (p + len > end) {
+        err = "OCTET STRING exceeds buffer";
         return false;
     }
 
-    // Version INTEGER
-    if (*p++ != 0x02) return false;
-    size_t verLen = decodeLength(p, end);
-    int version = 0;
+    outStr.assign(reinterpret_cast<const char*>(p), len);
+    p += len;
+    return true;
+}
 
-    while (verLen-- > 0) version = (version << 8) | *p++;
-
-    if (version != 0) {
-        if (err) *err = "Only SNMPv1 supported";
+// ------------------------------------------------------------
+// readSequence: читает SEQUENCE и возвращает seqEnd
+// ------------------------------------------------------------
+bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end,
+                                   const uint8_t*& seqEnd, std::string& err)
+{
+    if (!readTag(p, end, TAG_SEQUENCE, err)) {
         return false;
     }
 
-    // Community
-    if (*p++ != 0x04) return false;
-    size_t commLen = decodeLength(p, end);
-    p += commLen;
-
-    // PDU tag A0 = GetRequest-PDU
-    if (*p++ != 0xA0) {
-        if (err) *err = "Expected GetRequest (A0)";
+    size_t len = 0;
+    if (!readLength(p, end, len, err)) {
+        return false;
+    }
+    
+    if (p + len > end) {
+        err = "SEQUENCE length exceeds buffer";
         return false;
     }
 
-    // request-id
-    if (*p++ != 0x02) return false;
-    size_t idLen = decodeLength(p, end);
+    seqEnd = p + len;
 
-    int requestId = 0;
-    while (idLen-- > 0) requestId = (requestId << 8) | *p++;
+    return true;
+}
 
-    outReq.requestId = requestId;
+// ------------------------------------------------------------
+// readOid: читает ASN.1 OID
+// ------------------------------------------------------------
+bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end,
+                              std::string& outOid, std::string& err)
+{
+    if (!readTag(p, end, TAG_OID, err))
+        return false;
 
-    // error-status
-    if (*p++ != 0x02) return false;
-    p += decodeLength(p, end) + 1;
+    size_t len = 0;
+    if (!readLength(p, end, len, err))
+        return false;
 
-    // error-index
-    if (*p++ != 0x02) return false;
-    p += decodeLength(p, end) + 1;
+    if (p + len > end) {
+        err = "OID content exceeds buffer";
+        return false;
+    }
 
-    // VarBindList
-    if (*p++ != 0x30) return false;
-    size_t vblLen = decodeLength(p, end);
-    const uint8_t* vblEnd = p + vblLen;
+    const uint8_t* oidEnd = p + len;
 
-    // Parse each VarBind
-    while (p < vblEnd) {
-        if (*p++ != 0x30) return false;
-        size_t vbLen = decodeLength(p, end);
-        const uint8_t* vbEnd = p + vbLen;
+    if (len == 0) {
+        err = "OID length is zero";
+        return false;
+    }
 
-        // OID
-        if (*p++ != 0x06) return false;
-        size_t oidLen = decodeLength(p, end);
+    // First byte encodes: (first * 40 + second)
+    uint8_t fb = *p++;
+    int first  = fb / 40;
+    int second = fb % 40;
 
-        const uint8_t* oidPtr = p;
-        p += oidLen;
+    outOid = std::to_string(first) + "." + std::to_string(second);
 
-        // Decode OID arcs
-        std::string oid;
-        int firstByte = *oidPtr++;
-        int first = firstByte / 40;
-        int second = firstByte % 40;
+    int arc = 0;
+    while (p < oidEnd) {
+        uint8_t b = *p++;
 
-        oid = std::to_string(first) + "." + std::to_string(second);
+        // Continuation bit
+        arc = (arc << 7) | (b & 0x7F);
 
-        int arc = 0;
-        while (oidPtr < p) {
-            uint8_t b = *oidPtr++;
-            if (b & 0x80)
-                arc = (arc << 7) | (b & 0x7F);
-            else {
-                arc = (arc << 7) | b;
-                oid += "." + std::to_string(arc);
-                arc = 0;
-            }
+        if ((b & 0x80) == 0) {
+            // arc finished
+            outOid += "." + std::to_string(arc);
+            arc = 0;
         }
+    }
 
-        outReq.oids.push_back(oid);
-
-        // Skip value
-        p = vbEnd;
+    if (arc != 0) {
+        err = "OID ended unexpectedly (unfinished arc)";
+        return false;
     }
 
     return true;
 }
 
 // ------------------------------------------------------------
-// Encode SNMP GET RESPONSE PDU
+// readVarBind: читает один VarBind → только OID (значения игнорируем)
 // ------------------------------------------------------------
-std::vector<uint8_t> SnmpCodec::encodeGetResponse(int requestId,
-                                                  const std::vector<std::string>& oids,
-                                                  const UpsDataStore& store) {
-    std::vector<uint8_t> pdu;
+bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end,
+                                  std::string& outOid, std::string& err)
+{
+    const uint8_t* vbEnd = nullptr;
 
-    // request-id
-    std::vector<uint8_t> rid = encodeInteger(requestId);
-    pdu.insert(pdu.end(), rid.begin(), rid.end());
+    if (!readSequence(p, end, vbEnd, err))
+        return false;
 
-    // error-status = 0
-    std::vector<uint8_t> err = encodeInteger(0);
-    pdu.insert(pdu.end(), err.begin(), err.end());
+    if (!readOid(p, vbEnd, outOid, err))
+        return false;
 
-    // error-index = 0
-    std::vector<uint8_t> idx = encodeInteger(0);
-    pdu.insert(pdu.end(), idx.begin(), idx.end());
-
-    // VarBindList
-    std::vector<uint8_t> vbl;
-
-    for (size_t i = 0; i < oids.size(); ++i) {
-        const UpsParameter* p = store.get(oids[i]);
-
-        if (p) {
-            // normal varbind
-            std::vector<uint8_t> vb = encodeVarBind(p->oid, p->value, p->type);
-            vbl.insert(vbl.end(), vb.begin(), vb.end());
-        } else {
-            // OID not found → NULL (05 00)
-            std::vector<uint8_t> oidEnc = encodeOid(oids[i]);
-            std::vector<uint8_t> vb;
-
-            vb.insert(vb.end(), oidEnc.begin(), oidEnc.end());
-            vb.push_back(0x05);  // NULL
-            vb.push_back(0x00);
-
-            std::vector<uint8_t> seq;
-            seq.push_back(0x30);
-            encodeLength(seq, vb.size());
-            seq.insert(seq.end(), vb.begin(), vb.end());
-
-            vbl.insert(vbl.end(), seq.begin(), seq.end());
-        }
+    // VALUE (we skip it)
+    if (p >= vbEnd) {
+        err = "VarBind missing value field";
+        return false;
     }
 
-    // wrap vbl
-    std::vector<uint8_t> vblSeq;
-    vblSeq.push_back(0x30);
-    encodeLength(vblSeq, vbl.size());
-    vblSeq.insert(vblSeq.end(), vbl.begin(), vbl.end());
+    uint8_t tag = *p++;
 
-    pdu.insert(pdu.end(), vblSeq.begin(), vblSeq.end());
+    // Accept NULL, INTEGER, OCTET STRING — but we don't decode
+    switch (tag) {
+        case TAG_NULL:
+        case TAG_INTEGER:
+        case TAG_OCTETSTRING:
+            break;
 
-    // Wrap as GetResponse (A2)
-    std::vector<uint8_t> resp;
-    resp.push_back(0xA2);
-    encodeLength(resp, pdu.size());
-    resp.insert(resp.end(), pdu.begin(), pdu.end());
+        default:
+            err = "VarBind contains unsupported value type";
+            return false;
+    }
 
-    // Full SNMP message
+    // Read length and skip the value
+    size_t len = 0;
+    if (!readLength(p, vbEnd, len, err))
+        return false;
+
+    if (p + len > vbEnd) {
+        err = "VarBind value exceeds VarBind end";
+        return false;
+    }
+
+    p += len;
+    return true;
+}
+
+
+// ============================================================
+// ASN.1 Encoding helpers
+// ============================================================
+
+// ------------------------------------------------------------
+// encodeLength: short form only (len < 128)
+// SNMP packets rarely exceed this in UPS emulator.
+// ------------------------------------------------------------
+void snmp::SnmpCodec::encodeLength(std::vector<uint8_t>& out, size_t len)
+{
+    // For simplicity, we support only short form here (< 128).
+    // If needed, long form can be added later.
+    out.push_back(static_cast<uint8_t>(len));
+}
+
+// ------------------------------------------------------------
+// encodeInteger (positive, fits in signed int)
+// ------------------------------------------------------------
+std::vector<uint8_t> snmp::SnmpCodec::encodeInteger(int value)
+{
     std::vector<uint8_t> out;
 
-    out.push_back(0x30);  // SEQUENCE start
-    std::vector<uint8_t> inner;
+    out.push_back(TAG_INTEGER);
 
-    // version = 0
-    std::vector<uint8_t> ver = encodeInteger(0);
-    inner.insert(inner.end(), ver.begin(), ver.end());
+    // Encode integer big-endian
+    uint8_t buf[5]; // max 32-bit int + sign byte
+    int idx = 0;
 
-    // community = "public"
-    const char* comm = "public";
-    std::vector<uint8_t> commEnc;
-    commEnc.push_back(0x04);
-    encodeLength(commEnc, 6);
-    commEnc.insert(commEnc.end(), comm, comm + 6);
-    inner.insert(inner.end(), commEnc.begin(), commEnc.end());
+    int v = value;
+    do {
+        buf[idx++] = static_cast<uint8_t>(v & 0xFF);
+        v >>= 8;
+    } while (v != 0 && idx < 5);
 
-    // PDU
-    inner.insert(inner.end(), resp.begin(), resp.end());
+    // Reverse to big-endian
+    std::vector<uint8_t> val;
+    for (int i = idx - 1; i >= 0; --i)
+        val.push_back(buf[i]);
 
-    // wrap SEQUENCE
-    out.push_back(0x30);
-    encodeLength(out, inner.size());
-    out.insert(out.end(), inner.begin(), inner.end());
+    encodeLength(out, val.size());
+    out.insert(out.end(), val.begin(), val.end());
 
     return out;
 }
 
-}  // namespace snmp
+// ------------------------------------------------------------
+// encodeString (OCTET STRING)
+// ------------------------------------------------------------
+std::vector<uint8_t> snmp::SnmpCodec::encodeString(const std::string& value)
+{
+    std::vector<uint8_t> out;
+
+    out.push_back(TAG_OCTETSTRING);
+    encodeLength(out, value.size());
+
+    out.insert(out.end(), value.begin(), value.end());
+    return out;
+}
+
+// ------------------------------------------------------------
+// encodeOid
+//   "1.3.6.1.2.1.1.1.0"
+// ------------------------------------------------------------
+std::vector<uint8_t> snmp::SnmpCodec::encodeOid(const std::string& oid)
+{
+    std::vector<uint8_t> out;
+
+    out.push_back(TAG_OID);
+
+    // Split string by '.'
+    std::vector<int> arcs;
+    {
+        size_t pos = 0;
+        size_t next;
+        while ((next = oid.find('.', pos)) != std::string::npos) {
+            arcs.push_back(std::stoi(oid.substr(pos, next - pos)));
+            pos = next + 1;
+        }
+        arcs.push_back(std::stoi(oid.substr(pos)));
+    }
+
+    if (arcs.size() < 2) {
+        // minimally: 1.3.x
+        // but we enforce correct SNMP format externally
+        arcs.resize(2, 0);
+    }
+
+    std::vector<uint8_t> val;
+
+    // first two arcs: (X * 40 + Y)
+    val.push_back(static_cast<uint8_t>(arcs[0] * 40 + arcs[1]));
+
+    // remaining arcs: base-128 encoding
+    for (size_t i = 2; i < arcs.size(); i++) {
+        int arc = arcs[i];
+
+        // encode arc in base-128
+        uint8_t tmp[10];
+        int idx = 0;
+
+        tmp[idx++] = arc & 0x7F;
+        arc >>= 7;
+
+        while (arc > 0) {
+            tmp[idx++] = 0x80 | (arc & 0x7F);
+            arc >>= 7;
+        }
+
+        // reverse
+        for (int k = idx - 1; k >= 0; --k)
+            val.push_back(tmp[k]);
+    }
+
+    encodeLength(out, val.size());
+    out.insert(out.end(), val.begin(), val.end());
+
+    return out;
+}
+
+// ------------------------------------------------------------
+// encodeVarBind
+// VarBind ::= SEQUENCE { OID, value }
+// ------------------------------------------------------------
+std::vector<uint8_t> snmp::SnmpCodec::encodeVarBind(
+        const std::string& oid,
+        const UpsParameterValue& value,
+        UpsParameterType type)
+{
+    std::vector<uint8_t> out;
+
+    // Start SEQUENCE
+    out.push_back(TAG_SEQUENCE);
+    out.push_back(0); // placeholder
+    size_t lenPos = out.size() - 1;
+
+    size_t start = out.size();
+
+    // 1) OID
+    {
+        std::vector<uint8_t> v = encodeOid(oid);
+        out.insert(out.end(), v.begin(), v.end());
+    }
+
+    // 2) Value
+    if (value.empty()) {
+        // Encode NULL
+        out.push_back(TAG_NULL);
+        out.push_back(0x00);
+    } else {
+        if (type == UpsParameterType::Integer) {
+            std::vector<uint8_t> v = encodeInteger(std::stoi(value));
+            out.insert(out.end(), v.begin(), v.end());
+        } else {
+            std::vector<uint8_t> v = encodeString(value);
+            out.insert(out.end(), v.begin(), v.end());
+        }
+    }
+
+    // Fix SEQUENCE length
+    size_t len = out.size() - start;
+    out[lenPos] = static_cast<uint8_t>(len);
+
+    return out;
+}
