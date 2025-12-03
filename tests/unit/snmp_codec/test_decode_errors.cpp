@@ -39,7 +39,7 @@ TEST_F(SnmpCodecDecodeErrors, SequenceLengthExceedsBuffer) {
         0x02, 0x01, 0x00 // version = 0
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "SEQUENCE length exceeds buffer");
+    ASSERT_EQ(err, "Tag 0x30 length exceeds buffer");
 }
 
 // Пример запроса с неверным тегом версии (должен быть INTEGER = 0x02)
@@ -63,7 +63,7 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVersionLengthZero) {
             // нет данных
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "INTEGER length is zero");
+    ASSERT_EQ(err, "Tag 0x02 length is zero");
 }
 
 // Пример запроса с неверной длиной строки сообщества (длина превышает буфер)
@@ -74,7 +74,7 @@ TEST_F(SnmpCodecDecodeErrors, InvalidCommunityLength) {
             0x04, 0x05, 'p','u','b' // length = 5, but only 3 bytes
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "OCTET STRING length exceeds buffer");
+    ASSERT_EQ(err, "Tag 0x04 length exceeds buffer");
 }
 
 // Неверный тег GetRequest (должен быть A0)
@@ -100,7 +100,7 @@ TEST_F(SnmpCodecDecodeErrors, PduLengthExceedsBounds) {
             // нет 5 байт информации — это выход за msgEnd
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "PDU length exceeds message bounds");
+    ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
 }
 
 // Пример запроса с неверным тегом request-id (должен быть INTEGER = 0x02)
@@ -191,5 +191,5 @@ TEST_F(SnmpCodecDecodeErrors, PduLengthTooBig) {
                 0x00, 0x00  // request-id = 1
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "PDU length exceeds message bounds");
+    ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
 }

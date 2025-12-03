@@ -239,10 +239,21 @@ bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, ui
 
     uint8_t first = *p++;  // первый байт длины и указатель смещаем на следующий байт
 
+    // Вспомогательная лямбда для проверки выхода за границы буфера
+    auto check_bounds = [&](size_t len) -> bool {
+        if (p + len > end) {
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "Tag 0x%02X length exceeds buffer", expectedTag);
+            err = buf;
+            return false;
+        }
+        return true;
+    };
+
     // 2.1) Short form
     if (first < 0x80) {
         outLen = first;  // длина в одном байте
-        return true;
+        return check_bounds(outLen);
     }
 
     // 2.2) Long form
@@ -260,7 +271,7 @@ bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, ui
         len = (len << 8) | (*p++);
     }
     outLen = len;  // длина в нескольких байтах
-    return true;
+    return check_bounds(outLen);
 }
 
 // ------------------------------------------------------------
@@ -270,11 +281,6 @@ bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end, const 
                                    std::string& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_SEQUENCE, len, err)) return false;
-
-    if (p + len > end) {
-        err = "SEQUENCE length exceeds buffer";
-        return false;
-    }
 
     seqEnd = p + len;
 
@@ -290,13 +296,8 @@ bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end, int& ou
     if (!readTagAndLength(p, end, TAG_INTEGER, len, err))
         return false;
 
-    if (p + len > end) {
-        err = "INTEGER content exceeds buffer";
-        return false;
-    }
-
     if (len == 0) {
-        err = "INTEGER length is zero";
+        err = "Tag 0x02 length is zero";
         return false;
     }
 
@@ -318,11 +319,6 @@ bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end, std
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_OCTETSTRING, len, err)) return false;
 
-    if (p + len > end) {
-        err = "OCTET STRING length exceeds buffer";
-        return false;
-    }
-
     outStr.assign(reinterpret_cast<const char*>(p), len);
     p += len;
     return true;
@@ -336,11 +332,6 @@ bool snmp::SnmpCodec::readGetRequestPdu(const uint8_t*& p, const uint8_t* end, c
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_GETREQUEST, len, err)) return false;
 
-    if (p + len > end) {
-        err = "PDU length exceeds message bounds";
-        return false;
-    }
-
     pduEnd = p + len;
     return true;
 }
@@ -353,13 +344,8 @@ bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end, std::string
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_OID, len, err)) return false;
 
-    if (p + len > end) {
-        err = "OID content exceeds buffer";
-        return false;
-    }
-
     if (len == 0) {
-        err = "OID length is zero";
+        err = "Tag 0x06 length is zero";
         return false;
     }
 
