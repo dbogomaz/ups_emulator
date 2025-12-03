@@ -20,6 +20,11 @@ protected:
 // ------------------------------------------------------------
 // Тестируем декодирование SNMP GET-запросов (SNMPv1) с ошибками
 // ------------------------------------------------------------
+
+// =======================================================
+// Group 1 — Errors in the top-level SEQUENCE
+// =======================================================
+
 // Пример запроса с неверным верхнеуровневым тегом:
 TEST_F(SnmpCodecDecodeErrors, InvalidTopLevelTag) {
     // Первый байт НЕ 0x30 (SEQUENCE) → ошибка
@@ -41,6 +46,11 @@ TEST_F(SnmpCodecDecodeErrors, SequenceLengthExceedsBuffer) {
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x30 length exceeds buffer");
 }
+
+
+// =======================================================
+// Group 2 — Errors in Version (INTEGER)
+// =======================================================
 
 // Пример запроса с неверным тегом версии (должен быть INTEGER = 0x02)
 TEST_F(SnmpCodecDecodeErrors, InvalidVersionTag) {
@@ -66,7 +76,12 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVersionLengthZero) {
     ASSERT_EQ(err, "Tag 0x02 length is zero");
 }
 
-// Пример запроса с неверной длиной строки сообщества (длина превышает буфер)
+
+// =======================================================
+// Group 3 — Errors in Community (OCTET STRING)
+// =======================================================
+
+// Пример запроса с неверной длиной строки Community (длина превышает буфер)
 TEST_F(SnmpCodecDecodeErrors, InvalidCommunityLength) {
     uint8_t data[] = {
         0x30, 0x06,                 // SEQUENCE len=6
@@ -76,6 +91,11 @@ TEST_F(SnmpCodecDecodeErrors, InvalidCommunityLength) {
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x04 length exceeds buffer");
 }
+
+
+// =======================================================
+// Group 4 — Errors in GetRequest PDU header
+// =======================================================
 
 // Неверный тег GetRequest (должен быть A0)
 TEST_F(SnmpCodecDecodeErrors, InvalidGetRequestTag) {
@@ -89,9 +109,8 @@ TEST_F(SnmpCodecDecodeErrors, InvalidGetRequestTag) {
     ASSERT_EQ(err, "Invalid tag: expected 0xA0, got 0xA1");
 }
 
-
-// PDU length указывает за пределы верхнего SEQUENCE → ошибка
-TEST_F(SnmpCodecDecodeErrors, PduLengthExceedsBounds) {
+// PDU length указывает за пределы верхнего SEQUENCE - ошибка
+TEST_F(SnmpCodecDecodeErrors, GetRequestLengthExceedsBounds) {
     uint8_t data[] = {
         0x30, 0x08,           // SEQUENCE, length = 7 bytes
             0x02, 0x01, 0x00, // version = 0
@@ -102,6 +121,24 @@ TEST_F(SnmpCodecDecodeErrors, PduLengthExceedsBounds) {
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
 }
+
+// PDU length указывает за предел msgEnd (ошибка "PDU length exceeds message bounds")
+TEST_F(SnmpCodecDecodeErrors, GetRequestLengthTooBig) {
+    uint8_t data[] = {
+        0x30, 0x0A,              // SEQUENCE length = 10
+            0x02, 0x01, 0x00,    // version = 0
+            0x04, 0x01, 'x',     // community = "x"
+            0xA0, 0x05,          // PDU length = 5, но должно быть 3
+                0x00, 0x00  // request-id = 1
+    };
+    ASSERT_FALSE(decode(data, sizeof(data)));
+    ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
+}
+
+
+// =======================================================
+// Group 5 — Errors in request-id / error-status / error-index
+// =======================================================
 
 // Пример запроса с неверным тегом request-id (должен быть INTEGER = 0x02)
 TEST_F(SnmpCodecDecodeErrors, InvalidRequestIdTag) {
@@ -145,6 +182,12 @@ TEST_F(SnmpCodecDecodeErrors, InvalidErrorIndexTag) {
     ASSERT_EQ(err, "Invalid tag: expected 0x02, got 0x05");
 }
 
+
+
+// =======================================================
+// Group 6 — Errors in VarBindList / VarBind
+// =======================================================
+
 // Неверный тег VarBind (должен быть SEQUENCE = 0x30)
 TEST_F(SnmpCodecDecodeErrors, InvalidVarBindTag) {
     uint8_t data[] = {
@@ -179,17 +222,4 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVarBindListTag) {
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x30, got 0x31");
-}
-
-// PDU length указывает за предел msgEnd (ошибка "PDU length exceeds message bounds")
-TEST_F(SnmpCodecDecodeErrors, PduLengthTooBig) {
-    uint8_t data[] = {
-        0x30, 0x0A,              // SEQUENCE length = 10
-            0x02, 0x01, 0x00,    // version = 0
-            0x04, 0x01, 'x',     // community = "x"
-            0xA0, 0x05,          // PDU length = 5, но должно быть 3
-                0x00, 0x00  // request-id = 1
-    };
-    ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
 }
