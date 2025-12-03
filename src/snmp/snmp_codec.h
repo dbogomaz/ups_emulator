@@ -61,8 +61,8 @@ private:
                      int& outValue, std::string& err);
     bool readOctetString(const uint8_t*& p, const uint8_t* end,
                          std::string& outStr, std::string& err);
-    bool readPdu(const uint8_t*& p, const uint8_t* end, 
-                 const uint8_t*& pduEnd, std::string& err);
+    bool readGetRequestPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
+                           std::string& err);
     bool readOid(const uint8_t*& p, const uint8_t* end,
                  std::string& outOid, std::string& err);
     bool readVarBind(const uint8_t*& p, const uint8_t* end,

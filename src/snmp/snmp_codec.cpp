@@ -37,7 +37,7 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGet
 
     // 4) GetRequest PDU tag
     const uint8_t* pduEnd = nullptr;
-    if (!readPdu(p, msgEnd, pduEnd, err)) {
+    if (!readGetRequestPdu(p, msgEnd, pduEnd, err)) {
         if (errPtr) *errPtr = err;
         return false;
     }
@@ -331,7 +331,7 @@ bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end, std
 // ------------------------------------------------------------
 // readSequence: читает PDU и возвращает pduEnd
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
+bool snmp::SnmpCodec::readGetRequestPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
                               std::string& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_GETREQUEST, len, err)) return false;
