@@ -63,7 +63,7 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVersionLengthZero) {
             // нет данных
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
-    ASSERT_EQ(err, "INTEGER content exceeds buffer");
+    ASSERT_EQ(err, "INTEGER length is zero");
 }
 
 // Пример запроса с неверной длиной строки сообщества (длина превышает буфер)
