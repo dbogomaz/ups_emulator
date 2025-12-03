@@ -19,15 +19,16 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGet
     }
 
     // 2) version INTEGER
-    int version = 0;
-    if (!readInteger(p, msgEnd, version, err)) {
+    int verInt = 0;
+    if (!readInteger(p, msgEnd, verInt, err)) {
         if (errPtr) *errPtr = err;
         return false;
     }
-    if (version != 0) {
-        if (errPtr) *errPtr = "Unsupported SNMP version (expected v1 = 0)";
+    if (verInt != 0 && verInt != 1) { // поддерживаем v1(0) и v2c(1)
+        if (errPtr) *errPtr = "Unsupported SNMP version (expected v1 = 0 or v2c = 1)";
         return false;
     }
+    outReq.version = static_cast<SnmpVersion>(verInt);
 
     // 3) community (public) OCTET STRING
     if (!readOctetString(p, msgEnd, outReq.community, err)) {

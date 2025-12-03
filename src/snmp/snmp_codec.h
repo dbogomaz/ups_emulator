@@ -11,20 +11,26 @@
 namespace snmp {
 
 // ------------------------------------------------------------
-// Parsed SNMP GET Request (SNMPv1)
+// SNMP Version
+// ------------------------------------------------------------
+enum class SnmpVersion : uint8_t { V_1 = 0, V_2C = 1 };
+
+// ------------------------------------------------------------
+// Parsed SNMP GET Request (SNMPv1, v2c)
 // ------------------------------------------------------------
 struct SnmpGetRequest {
-    int requestId{0};               // request-id
-    std::string community{};        // community string ("public")
-    std::vector<std::string> oids;  // list of OIDs from varbind-list
+    int requestId{0};                       // request-id
+    SnmpVersion version{SnmpVersion::V_1};  // SNMP version
+    std::string community{};                // community string ("public")
+    std::vector<std::string> oids;          // list of OIDs from varbind-list
 };
 
 // ------------------------------------------------------------
-// SNMP Codec (ASN.1 BER encoder/decoder for SNMP v1)
+// SNMP Codec (ASN.1 BER encoder/decoder for SNMP v1, v2c)
 // ------------------------------------------------------------
 class SnmpCodec {
 public:
-    // Decode SNMP GET Request (SNMP v1)
+    // Decode SNMP GET Request (SNMP v1, v2c)
     bool decodeGetRequest(const uint8_t* data, size_t size,
                           SnmpGetRequest& outReq,
                           std::string* err = 0);
