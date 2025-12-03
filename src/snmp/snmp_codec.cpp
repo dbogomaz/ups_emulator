@@ -1,8 +1,6 @@
 #include "snmp/snmp_codec.h"
-#include <cstdio>   // временно для отладки (потом уберём)
 
-
-
+#include <cstdio>  // временно для отладки (потом уберём)
 
 // ============================================================
 // decodeGetRequest (SNMPv1)
@@ -204,56 +202,51 @@ std::vector<uint8_t> snmp::SnmpCodec::encodeGetResponse(
 }
 #endif
 
-
 // ============================================================
-// ASN.1 Helpers
+// ASN.1 decoding helpers
 // ============================================================
 
 // ------------------------------------------------------------
-// readTag: читает и проверяет ASN.1 тег
+// readTagAndLength: читает тег expectedTag и длину (ASN.1)
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readTag(const uint8_t*& p, const uint8_t* end,
-                              uint8_t expectedTag, std::string& err)
-{
+bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, uint8_t expectedTag,
+                                       size_t& outLen, std::string& err) {
+    // 1) Tag
     if (p >= end) {
         err = "Unexpected end of buffer while reading tag";
         return false;
     }
-
     uint8_t tag = *p;
     if (tag != expectedTag) {
         char buf[128];
-        std::snprintf(buf, sizeof(buf),
-                      "Invalid tag: expected 0x%02X, got 0x%02X",
-                      expectedTag, tag);
+        std::snprintf(buf, sizeof(buf), "Invalid tag: expected 0x%02X, got 0x%02X", expectedTag,
+                      tag);
         err = buf;
         return false;
     }
+    p++;  // следующая должна быть длина
 
-    p++; // consume tag
-    return true;
-}
-
-// ------------------------------------------------------------
-// readLength: читает ASN.1 длину (short/long form)
-// ------------------------------------------------------------
-bool snmp::SnmpCodec::readLength(const uint8_t*& p, const uint8_t* end,
-                                 size_t& outLen, std::string& err)
-{
+    // 2) Length
     if (p >= end) {
         err = "Unexpected end of buffer while reading length";
         return false;
     }
 
-    uint8_t first = *p++;
+    // читаем маны стандарта ASN.1
+    // length может быть в короткой или длинной форме
+    // короткая форма: один байт, если < 128
+    // длинная форма: первый байт: бит 8 установлен, биты 7-1: количество следующих байт длины
+
+    uint8_t first = *p++;  // первый байт длины и указатель смещаем на следующий байт
+
+    // 2.1) Short form
     if (first < 0x80) {
-        // short form
-        outLen = first;
+        outLen = first;  // длина в одном байте
         return true;
     }
 
-    // long form
-    uint8_t count = first & 0x7F;
+    // 2.2) Long form
+    uint8_t count = first & 0x7F;  // количество байт длины
     if (count == 0) {
         err = "Invalid ASN.1 length: long form with zero count";
         return false;
@@ -262,32 +255,48 @@ bool snmp::SnmpCodec::readLength(const uint8_t*& p, const uint8_t* end,
         err = "Length field exceeds buffer";
         return false;
     }
-
     size_t len = 0;
     for (uint8_t i = 0; i < count; i++) {
         len = (len << 8) | (*p++);
     }
+    outLen = len;  // длина в нескольких байтах
+    return true;
+}
 
-    outLen = len;
+// ------------------------------------------------------------
+// readSequence: читает SEQUENCE и возвращает seqEnd
+// ------------------------------------------------------------
+bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end, const uint8_t*& seqEnd,
+                                   std::string& err) {
+    size_t len = 0;
+    if (!readTagAndLength(p, end, TAG_SEQUENCE, len, err)) return false;
+
+    if (p + len > end) {
+        err = "SEQUENCE length exceeds buffer";
+        return false;
+    }
+
+    seqEnd = p + len;
+
     return true;
 }
 
 // ------------------------------------------------------------
 // readInteger: читает ASN.1 INTEGER
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end,
-                                  int& outValue, std::string& err)
-{
-    if (!readTag(p, end, TAG_INTEGER, err))
-        return false;
-
+bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end, int& outValue,
+                                  std::string& err) {
     size_t len = 0;
-    if (!readLength(p, end, len, err))
+    if (!readTagAndLength(p, end, TAG_INTEGER, len, err))
         return false;
 
-    if (p + len > end || 
-        len == 0) {
+    if (p + len > end) {
         err = "INTEGER content exceeds buffer";
+        return false;
+    }
+
+    if (len == 0) {
+        err = "INTEGER length is zero";
         return false;
     }
 
@@ -296,23 +305,18 @@ bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end,
         value = (value << 8) | p[i];
     }
 
-    p += len; // consume value
+    p += len;  // не забываем сдвинуть указатель
     outValue = value;
     return true;
 }
 
 // ------------------------------------------------------------
-// readOctetString: читает OCTET STRING → outStr
+// readOctetString: читает OCTET STRING возвращает outStr
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end,
-                                      std::string& outStr, std::string& err)
-{
-    if (!readTag(p, end, TAG_OCTETSTRING, err))
-        return false;
-
+bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end, std::string& outStr,
+                                      std::string& err) {
     size_t len = 0;
-    if (!readLength(p, end, len, err))
-        return false;
+    if (!readTagAndLength(p, end, TAG_OCTETSTRING, len, err)) return false;
 
     if (p + len > end) {
         err = "OCTET STRING length exceeds buffer";
@@ -325,46 +329,13 @@ bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end,
 }
 
 // ------------------------------------------------------------
-// readSequence: читает SEQUENCE и возвращает seqEnd
-// ------------------------------------------------------------
-bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end,
-                                   const uint8_t*& seqEnd, std::string& err)
-{
-    if (!readTag(p, end, TAG_SEQUENCE, err)) {
-        return false;
-    }
-
-    size_t len = 0;
-    if (!readLength(p, end, len, err)) {
-        return false;
-    }
-    
-    if (p + len > end) {
-        err = "SEQUENCE length exceeds buffer";
-        return false;
-    }
-
-    seqEnd = p + len;
-
-    return true;
-}
-
-
-// ------------------------------------------------------------
 // readSequence: читает PDU и возвращает pduEnd
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readPdu(const uint8_t*& p, const uint8_t* end,
-                                   const uint8_t*& pduEnd, std::string& err)
-{
-    if (!readTag(p, end, TAG_GETREQUEST, err)) {
-        return false;
-    }
-
+bool snmp::SnmpCodec::readPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
+                              std::string& err) {
     size_t len = 0;
-    if (!readLength(p, end, len, err)) {
-        return false;
-    }
-    
+    if (!readTagAndLength(p, end, TAG_GETREQUEST, len, err)) return false;
+
     if (p + len > end) {
         err = "PDU length exceeds message bounds";
         return false;
@@ -374,53 +345,53 @@ bool snmp::SnmpCodec::readPdu(const uint8_t*& p, const uint8_t* end,
     return true;
 }
 
-
 // ------------------------------------------------------------
 // readOid: читает ASN.1 OID
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end,
-                              std::string& outOid, std::string& err)
-{
-    if (!readTag(p, end, TAG_OID, err))
-        return false;
-
+bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end, std::string& outOid,
+                              std::string& err) {
     size_t len = 0;
-    if (!readLength(p, end, len, err))
-        return false;
+    if (!readTagAndLength(p, end, TAG_OID, len, err)) return false;
 
     if (p + len > end) {
         err = "OID content exceeds buffer";
         return false;
     }
 
-    const uint8_t* oidEnd = p + len;
-
     if (len == 0) {
         err = "OID length is zero";
         return false;
     }
 
-    // First byte encodes: (first * 40 + second)
+    const uint8_t* oidEnd = p + len;
+
+    // OID состоит из чисел, например: 1.3.6.1.2
+    // Первые два числа кодируются вместе в один байт по формуле:
+    // first * 40 + second
+    // Декодируем первый байт
     uint8_t fb = *p++;
-    int first  = fb / 40;
+    int first = fb / 40;
     int second = fb % 40;
 
     outOid = std::to_string(first) + "." + std::to_string(second);
 
+    // Последующие байты: base-128 кодированные части OID
+    // могут быть короткие (один байт) или длинные (несколько байт с битом продолжения)
     int arc = 0;
     while (p < oidEnd) {
         uint8_t b = *p++;
 
-        // Continuation bit
+        // Бит продолжения
         arc = (arc << 7) | (b & 0x7F);
 
-        if ((b & 0x80) == 0) {
-            // arc finished
+        if ((b & 0x80) == 0) {  // 0x80 - бит продолжения длинного числа
+            // часть завершена
             outOid += "." + std::to_string(arc);
             arc = 0;
         }
     }
 
+    // Проверка на незавершённую часть
     if (arc != 0) {
         err = "OID ended unexpectedly (unfinished arc)";
         return false;
@@ -430,50 +401,47 @@ bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end,
 }
 
 // ------------------------------------------------------------
-// readVarBind: читает один VarBind → только OID (значения игнорируем)
+// readVarBind: читает один VarBind - только OID (значения игнорируем)
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end,
-                                  std::string& outOid, std::string& err)
-{
+bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end, std::string& outOid,
+                                  std::string& err) {
+    // 1) Внутренний SEQUENCE VarBind
     const uint8_t* vbEnd = nullptr;
+    if (!readSequence(p, end, vbEnd, err)) return false;
 
-    if (!readSequence(p, end, vbEnd, err))
-        return false;
+    // 2) OID
+    if (!readOid(p, vbEnd, outOid, err)) return false;
 
-    if (!readOid(p, vbEnd, outOid, err))
-        return false;
+    // 3) VALUE — читаем через readTagAndLength
+    uint8_t valueTag = 0;
+    size_t valueLen = 0;
 
-    // VALUE (we skip it)
     if (p >= vbEnd) {
         err = "VarBind missing value field";
         return false;
     }
 
-    uint8_t tag = *p++;
+    valueTag = *p;  // читаем тег значения
 
-    // Accept NULL, INTEGER, OCTET STRING — but we don't decode
-    switch (tag) {
+    switch (valueTag) {
         case TAG_NULL:
         case TAG_INTEGER:
         case TAG_OCTETSTRING:
             break;
-
         default:
             err = "VarBind contains unsupported value type";
             return false;
     }
 
-    // Read length and skip the value
-    size_t len = 0;
-    if (!readLength(p, vbEnd, len, err))
-        return false;
+    // Теперь читаем Tag + Length
+    if (!readTagAndLength(p, vbEnd, valueTag, valueLen, err)) return false;
 
-    if (p + len > vbEnd) {
+    if (p + valueLen > vbEnd) {
         err = "VarBind value exceeds VarBind end";
         return false;
     }
 
-    p += len;
+    p += valueLen;  // всё, VarBind закончился
     return true;
 }
 

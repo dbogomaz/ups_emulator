@@ -52,22 +52,22 @@ private:
     // ============================================================
     // Low-level ASN.1 decoding helpers
     // ============================================================
-    bool readTag(const uint8_t*& p, const uint8_t* end,
-                 uint8_t expectedTag, std::string& err);
-    bool readLength(const uint8_t*& p, const uint8_t* end,
-                    size_t& outLen, std::string& err);
+    bool readTagAndLength(const uint8_t*& p, const uint8_t* end, 
+                          uint8_t expectedTag, size_t& outLen, std::string& err);
+
+    bool readSequence(const uint8_t*& p, const uint8_t* end,
+                      const uint8_t*& seqEnd, std::string& err);      
     bool readInteger(const uint8_t*& p, const uint8_t* end,
                      int& outValue, std::string& err);
     bool readOctetString(const uint8_t*& p, const uint8_t* end,
                          std::string& outStr, std::string& err);
-    bool readSequence(const uint8_t*& p, const uint8_t* end,
-                      const uint8_t*& seqEnd, std::string& err);
     bool readPdu(const uint8_t*& p, const uint8_t* end, 
                  const uint8_t*& pduEnd, std::string& err);
     bool readOid(const uint8_t*& p, const uint8_t* end,
                  std::string& outOid, std::string& err);
     bool readVarBind(const uint8_t*& p, const uint8_t* end,
                      std::string& outOid, std::string& err);
+
 #if 0
     // ============================================================
     // Encoding helpers (BER)
