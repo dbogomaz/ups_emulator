@@ -215,7 +215,10 @@ bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, ui
                                        size_t& outLen, ErrorMessage& err) {
     // 1) Tag
     if (p >= end) {
-        err = "Unexpected end of buffer while reading tag";
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), "Unexpected end of buffer while reading tag 0x%02X",
+                      expectedTag);
+        err = buf;
         return false;
     }
     uint8_t tag = *p;
@@ -230,7 +233,10 @@ bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, ui
 
     // 2) Length
     if (p >= end) {
-        err = "Unexpected end of buffer while reading length";
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), "Unexpected end of buffer while reading tag 0x%02X length",
+                      expectedTag);
+        err = buf;
         return false;
     }
 
@@ -422,11 +428,6 @@ bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end, Oid& ou
 
     // Теперь читаем Tag + Length
     if (!readTagAndLength(p, vbEnd, valueTag, valueLen, err)) return false;
-
-    if (p + valueLen > vbEnd) {
-        err = "VarBind value exceeds VarBind end";
-        return false;
-    }
 
     p += valueLen;  // всё, VarBind закончился
     return true;
