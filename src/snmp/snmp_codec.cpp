@@ -24,7 +24,8 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGet
         if (errPtr) *errPtr = err;
         return false;
     }
-    if (verInt != 0 && verInt != 1) { // поддерживаем v1(0) и v2c(1)
+    if (verInt != 0 && 
+        verInt != 1) {  // поддерживаем v1(0) и v2c(1)
         if (errPtr) *errPtr = "Unsupported SNMP version (expected v1 = 0 or v2c = 1)";
         return false;
     }
@@ -294,8 +295,7 @@ bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end, const 
 bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end, int& outValue,
                                   ErrorMessage& err) {
     size_t len = 0;
-    if (!readTagAndLength(p, end, TAG_INTEGER, len, err))
-        return false;
+    if (!readTagAndLength(p, end, TAG_INTEGER, len, err)) return false;
 
     if (len == 0) {
         err = "Tag 0x02 length is zero";
@@ -328,8 +328,8 @@ bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end, std
 // ------------------------------------------------------------
 // readSequence: читает PDU и возвращает pduEnd
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readGetRequestPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
-                              ErrorMessage& err) {
+bool snmp::SnmpCodec::readGetRequestPdu(const uint8_t*& p, const uint8_t* end,
+                                        const uint8_t*& pduEnd, ErrorMessage& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_GETREQUEST, len, err)) return false;
 
