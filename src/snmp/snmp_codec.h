@@ -22,7 +22,7 @@ struct SnmpGetRequest {
     int requestId{0};                       // request-id
     SnmpVersion version{SnmpVersion::V_1};  // SNMP version
     std::string community{};                // community string ("public")
-    std::vector<std::string> oids;          // list of OIDs from varbind-list
+    std::vector<Oid> oids;                  // list of OIDs from varbind-list
 };
 
 // ------------------------------------------------------------
@@ -33,7 +33,7 @@ public:
     // Decode SNMP GET Request (SNMP v1, v2c)
     bool decodeGetRequest(const uint8_t* data, size_t size,
                           SnmpGetRequest& outReq,
-                          std::string* err = 0);
+                          ErrorMessage* err = 0);
 #if 0
     // Encode SNMP GET Response (SNMP v1)
     std::vector<uint8_t> encodeGetResponse(int requestId,
@@ -58,21 +58,18 @@ private:
     // ============================================================
     // Low-level ASN.1 decoding helpers
     // ============================================================
-    bool readTagAndLength(const uint8_t*& p, const uint8_t* end, 
-                          uint8_t expectedTag, size_t& outLen, std::string& err);
+    bool readTagAndLength(const uint8_t*& p, const uint8_t* end, uint8_t expectedTag,
+                          size_t& outLen, ErrorMessage& err);
 
-    bool readSequence(const uint8_t*& p, const uint8_t* end,
-                      const uint8_t*& seqEnd, std::string& err);      
-    bool readInteger(const uint8_t*& p, const uint8_t* end,
-                     int& outValue, std::string& err);
-    bool readOctetString(const uint8_t*& p, const uint8_t* end,
-                         std::string& outStr, std::string& err);
+    bool readSequence(const uint8_t*& p, const uint8_t* end, const uint8_t*& seqEnd,
+                      ErrorMessage& err);
+    bool readInteger(const uint8_t*& p, const uint8_t* end, int& outValue, ErrorMessage& err);
+    bool readOctetString(const uint8_t*& p, const uint8_t* end, std::string& outStr,
+                         ErrorMessage& err);
     bool readGetRequestPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
-                           std::string& err);
-    bool readOid(const uint8_t*& p, const uint8_t* end,
-                 std::string& outOid, std::string& err);
-    bool readVarBind(const uint8_t*& p, const uint8_t* end,
-                     std::string& outOid, std::string& err);
+                           ErrorMessage& err);
+    bool readOid(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
+    bool readVarBind(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
 
 #if 0
     // ============================================================

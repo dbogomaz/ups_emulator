@@ -6,7 +6,7 @@
 // decodeGetRequest (SNMPv1)
 // ============================================================
 bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGetRequest& outReq,
-                                       std::string* errPtr) {
+                                       ErrorMessage* errPtr) {
     std::string err;
     const uint8_t* p = data;
     const uint8_t* end = data + size;
@@ -74,7 +74,7 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data, size_t size, SnmpGet
 
     // 9) Parse varbinds
     while (p < vblEnd) {
-        std::string oid;
+        Oid oid;
         if (!readVarBind(p, vblEnd, oid, err)) {
             if (errPtr) *errPtr = err;
             return false;
@@ -211,7 +211,7 @@ std::vector<uint8_t> snmp::SnmpCodec::encodeGetResponse(
 // readTagAndLength: читает тег expectedTag и длину (ASN.1)
 // ------------------------------------------------------------
 bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, uint8_t expectedTag,
-                                       size_t& outLen, std::string& err) {
+                                       size_t& outLen, ErrorMessage& err) {
     // 1) Tag
     if (p >= end) {
         err = "Unexpected end of buffer while reading tag";
@@ -279,7 +279,7 @@ bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, const uint8_t* end, ui
 // readSequence: читает SEQUENCE и возвращает seqEnd
 // ------------------------------------------------------------
 bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end, const uint8_t*& seqEnd,
-                                   std::string& err) {
+                                   ErrorMessage& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_SEQUENCE, len, err)) return false;
 
@@ -292,7 +292,7 @@ bool snmp::SnmpCodec::readSequence(const uint8_t*& p, const uint8_t* end, const 
 // readInteger: читает ASN.1 INTEGER
 // ------------------------------------------------------------
 bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end, int& outValue,
-                                  std::string& err) {
+                                  ErrorMessage& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_INTEGER, len, err))
         return false;
@@ -316,7 +316,7 @@ bool snmp::SnmpCodec::readInteger(const uint8_t*& p, const uint8_t* end, int& ou
 // readOctetString: читает OCTET STRING возвращает outStr
 // ------------------------------------------------------------
 bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end, std::string& outStr,
-                                      std::string& err) {
+                                      ErrorMessage& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_OCTETSTRING, len, err)) return false;
 
@@ -329,7 +329,7 @@ bool snmp::SnmpCodec::readOctetString(const uint8_t*& p, const uint8_t* end, std
 // readSequence: читает PDU и возвращает pduEnd
 // ------------------------------------------------------------
 bool snmp::SnmpCodec::readGetRequestPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
-                              std::string& err) {
+                              ErrorMessage& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_GETREQUEST, len, err)) return false;
 
@@ -340,8 +340,8 @@ bool snmp::SnmpCodec::readGetRequestPdu(const uint8_t*& p, const uint8_t* end, c
 // ------------------------------------------------------------
 // readOid: читает ASN.1 OID
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end, std::string& outOid,
-                              std::string& err) {
+bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end, Oid& outOid,
+                              ErrorMessage& err) {
     size_t len = 0;
     if (!readTagAndLength(p, end, TAG_OID, len, err)) return false;
 
@@ -390,8 +390,8 @@ bool snmp::SnmpCodec::readOid(const uint8_t*& p, const uint8_t* end, std::string
 // ------------------------------------------------------------
 // readVarBind: читает один VarBind - только OID (значения игнорируем)
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end, std::string& outOid,
-                                  std::string& err) {
+bool snmp::SnmpCodec::readVarBind(const uint8_t*& p, const uint8_t* end, Oid& outOid,
+                                  ErrorMessage& err) {
     // 1) Внутренний SEQUENCE VarBind
     const uint8_t* vbEnd = nullptr;
     if (!readSequence(p, end, vbEnd, err)) return false;
