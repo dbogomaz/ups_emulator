@@ -2,10 +2,7 @@
 
 BerWriter::BerWriter(std::vector<uint8_t>& out) : m_out(out) {}
 
-void BerWriter::putTag(uint8_t tag) {
-    // TODO: реализовать
-    m_out.push_back(tag);
-}
+void BerWriter::putTag(uint8_t tag) { putByte(tag); }
 
 void BerWriter::putLength(std::size_t len) {
     // TODO: реализовать short/long form

@@ -32,11 +32,11 @@ public:
     // Записать длину в формате ASN.1 BER (short/long)
     void putLength(std::size_t len);
 
-    // Записать произвольные байты
-    void putBytes(const uint8_t* data, std::size_t len);
-
     // Записать один байт
     void putByte(uint8_t b);
+
+    // Записать произвольные байты
+    void putBytes(const uint8_t* data, std::size_t len);
 
     // --------------------------------------------------------
     // Работа с SEQUENCE / Constructed TLV
