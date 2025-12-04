@@ -30,7 +30,7 @@ public:
     void putTag(uint8_t tag);
 
     // Записать длину в формате ASN.1 BER (short/long)
-    void putLength(std::size_t len);
+    void putLength(std::size_t contentLength);
 
     // Записать один байт
     void putByte(uint8_t b);

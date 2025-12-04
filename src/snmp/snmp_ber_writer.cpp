@@ -4,9 +4,31 @@ BerWriter::BerWriter(std::vector<uint8_t>& out) : m_out(out) {}
 
 void BerWriter::putTag(uint8_t tag) { putByte(tag); }
 
-void BerWriter::putLength(std::size_t len) {
-    // TODO: реализовать short/long form
-    (void)len;
+void BerWriter::putLength(std::size_t contentLength) {
+    // Short form
+    if (contentLength < 128) {
+        putByte(static_cast<uint8_t>(contentLength));
+        return;
+    }
+
+    // Long form
+    // Определяем минимальное количество байт, чтобы представить len
+    if (contentLength <= 0xFF) {
+        // 1 byte length
+        putByte(0x81);
+        putByte(static_cast<uint8_t>(contentLength));
+    } else if (contentLength <= 0xFFFF) {
+        // 2 byte length
+        putByte(0x82);
+        putByte(static_cast<uint8_t>((contentLength >> 8) & 0xFF));
+        putByte(static_cast<uint8_t>(contentLength & 0xFF));
+    } else {
+        // Теоретически SNMP не использует такие длины, но реализуем 3 bytes
+        putByte(0x83);
+        putByte(static_cast<uint8_t>((contentLength >> 16) & 0xFF));
+        putByte(static_cast<uint8_t>((contentLength >> 8) & 0xFF));
+        putByte(static_cast<uint8_t>(contentLength & 0xFF));
+    }
 }
 
 void BerWriter::putByte(uint8_t b) { m_out.push_back(b); }
