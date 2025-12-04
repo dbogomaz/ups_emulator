@@ -31,6 +31,10 @@ add_ups_test(snmp_codec_test
     unit/snmp_codec/test_decode_errors.cpp
 )
 
+add_ups_test(snmp_ber_writer_test
+    unit/snmp_codec/test_ber_writer.cpp
+)
+
 add_subdirectory(googletest)
 
 if (BUILD_COVERAGE)
