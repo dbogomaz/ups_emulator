@@ -12,9 +12,10 @@ void BerWriter::putLength(std::size_t len) {
 void BerWriter::putByte(uint8_t b) { m_out.push_back(b); }
 
 void BerWriter::putBytes(const uint8_t* data, std::size_t len) {
-    // TODO: реализовать
-    (void)data;
-    (void)len;
+    if (!data || 
+        len == 0) 
+        return;
+    m_out.insert(m_out.end(), data, data + len);
 }
 
 std::size_t BerWriter::beginSequence(uint8_t tag) {
