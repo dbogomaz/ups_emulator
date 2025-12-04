@@ -13,24 +13,17 @@ void BerWriter::putLength(std::size_t contentLength) {
         return;
     }
 
-    // Long form
-    // Определяем минимальное количество байт, чтобы представить len
+    // Long form 1 byte length
     if (contentLength <= 0xFF) {
-        // 1 byte length
         putByte(0x81);
         putByte(static_cast<uint8_t>(contentLength));
-    } else if (contentLength <= 0xFFFF) {
-        // 2 byte length
-        putByte(0x82);
-        putByte(static_cast<uint8_t>((contentLength >> 8) & 0xFF));
-        putByte(static_cast<uint8_t>(contentLength & 0xFF));
-    } else {
-        // Теоретически SNMP не использует такие длины, но реализуем 3 bytes
-        putByte(0x83);
-        putByte(static_cast<uint8_t>((contentLength >> 16) & 0xFF));
-        putByte(static_cast<uint8_t>((contentLength >> 8) & 0xFF));
-        putByte(static_cast<uint8_t>(contentLength & 0xFF));
+        return;
     }
+
+    // Long form 2 byte length
+    putByte(0x82);
+    putByte(static_cast<uint8_t>((contentLength >> 8) & 0xFF));
+    putByte(static_cast<uint8_t>(contentLength & 0xFF));
 }
 
 void BerWriter::putByte(uint8_t b) { m_out.push_back(b); }
