@@ -34,12 +34,6 @@ public:
     bool decodeGetRequest(const uint8_t* data, size_t size,
                           SnmpGetRequest& outReq,
                           ErrorMessage* err = 0);
-#if 0
-    // Encode SNMP GET Response (SNMP v1)
-    std::vector<uint8_t> encodeGetResponse(int requestId,
-                                           const std::vector<std::string>& oids,
-                                           const UpsDataStore& store);
-#endif
 
 private:
     // ============================================================
@@ -71,18 +65,6 @@ private:
     bool readOid(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
     bool readVarBind(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
 
-#if 0
-    // ============================================================
-    // Encoding helpers (BER)
-    // ============================================================
-    void encodeLength(std::vector<uint8_t>& out, size_t len);
-    std::vector<uint8_t> encodeInteger(int value);
-    std::vector<uint8_t> encodeString(const std::string& value);
-    std::vector<uint8_t> encodeOid(const std::string& oid);
-    std::vector<uint8_t> encodeVarBind(const std::string& oid,
-                                       const UpsParameterValue& value,
-                                       UpsParameterType type);
-#endif
 };
 
 } // namespace snmp

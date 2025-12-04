@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "snmp/snmp_codec.h"
+#include "snmp_codec.h"
 
 using namespace snmp;
 
