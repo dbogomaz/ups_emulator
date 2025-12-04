@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "snmp_ber_writer.h"
 #include "ups_data_store.h"
 #include "ups_types.h"
 
@@ -31,42 +32,76 @@ struct SnmpGetRequest {
 class SnmpCodec {
 public:
     // Decode SNMP GET Request (SNMP v1, v2c)
-    bool decodeGetRequest(const uint8_t* data, size_t size,
+    bool decodeGetRequest(const uint8_t* data,
+                          size_t size,
                           SnmpGetRequest& outReq,
-                          ErrorMessage* err = 0);
+                          ErrorMessage* err = nullptr);
+
+    // Encode SNMP GET-RESPONSE (SNMP v1/v2c)
+    bool encodeGetResponse(const SnmpGetRequest& req,
+                           const UpsDataStore& store,
+                           std::vector<uint8_t>& out,
+                           ErrorMessage* err = nullptr);
 
 private:
     // ============================================================
     // ASN.1 TAG DEFINITIONS
     // ============================================================
     enum : uint8_t {
-        TAG_SEQUENCE      = 0x30,
-        TAG_INTEGER       = 0x02,
-        TAG_OCTETSTRING   = 0x04,
-        TAG_NULL          = 0x05,
-        TAG_OID           = 0x06,
-        TAG_GETREQUEST    = 0xA0,
-        TAG_GETRESPONSE   = 0xA2
+        TAG_SEQUENCE = 0x30,
+        TAG_INTEGER = 0x02,
+        TAG_OCTETSTRING = 0x04,
+        TAG_NULL = 0x05,
+        TAG_OID = 0x06,
+        TAG_GETREQUEST = 0xA0,
+        TAG_GETRESPONSE = 0xA2
     };
 
     // ============================================================
     // Low-level ASN.1 decoding helpers
     // ============================================================
-    bool readTagAndLength(const uint8_t*& p, const uint8_t* end, uint8_t expectedTag,
-                          size_t& outLen, ErrorMessage& err);
+    bool readTagAndLength(const uint8_t*& p,
+                          const uint8_t* end,
+                          uint8_t expectedTag,
+                          size_t& outLen,
+                          ErrorMessage& err);
 
-    bool readSequence(const uint8_t*& p, const uint8_t* end, const uint8_t*& seqEnd,
+    bool readSequence(const uint8_t*& p,
+                      const uint8_t* end,
+                      const uint8_t*& seqEnd,
                       ErrorMessage& err);
     bool readInteger(const uint8_t*& p, const uint8_t* end, int& outValue, ErrorMessage& err);
-    bool readOctetString(const uint8_t*& p, const uint8_t* end, std::string& outStr,
+    bool readOctetString(const uint8_t*& p,
+                         const uint8_t* end,
+                         std::string& outStr,
                          ErrorMessage& err);
-    bool readGetRequestPdu(const uint8_t*& p, const uint8_t* end, const uint8_t*& pduEnd,
+    bool readGetRequestPdu(const uint8_t*& p,
+                           const uint8_t* end,
+                           const uint8_t*& pduEnd,
                            ErrorMessage& err);
     bool readOid(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
     bool readVarBind(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
 
+    // ============================================================
+    // Low-level ASN.1 encoding helpers (mirror of decoding)
+    // ============================================================
+    void encodeInteger(BerWriter& w, int value) const;
+    void encodeOctetString(BerWriter& w, const std::string& str) const;
+    void encodeNull(BerWriter& w) const;
+    void encodeOid(BerWriter& w, const Oid& oid) const;
+
+    // ============================================================
+    // SNMP structural encoders
+    // ============================================================
+    void encodeVarBind(BerWriter& w, const Oid& oid, const UpsParameter* param) const;
+    void encodeVarBindList(BerWriter& w,
+                           const std::vector<Oid>& oids,
+                           const UpsDataStore& store) const;
+    void encodeGetResponsePdu(BerWriter& w,
+                              const SnmpGetRequest& req,
+                              const UpsDataStore& store) const;
 };
 
-} // namespace snmp
+}  // namespace snmp
 
-#endif // SNMP_CODEC_H
+#endif  // SNMP_CODEC_H
