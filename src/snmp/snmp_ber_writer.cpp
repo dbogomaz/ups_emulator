@@ -1,5 +1,7 @@
 #include "snmp_ber_writer.h"
 
+#include <cstring>
+
 BerWriter::BerWriter(std::vector<uint8_t>& out) : m_out(out) {}
 
 void BerWriter::putTag(uint8_t tag) { putByte(tag); }
@@ -34,25 +36,45 @@ void BerWriter::putLength(std::size_t contentLength) {
 void BerWriter::putByte(uint8_t b) { m_out.push_back(b); }
 
 void BerWriter::putBytes(const uint8_t* data, std::size_t len) {
-    if (!data || 
-        len == 0) 
-        return;
+    if (!data || len == 0) return;
     m_out.insert(m_out.end(), data, data + len);
 }
 
 std::size_t BerWriter::beginSequence(uint8_t tag) {
-    // TODO:
-    // 1. putTag(tag)
-    // 2. put placeholder length (e.g. 0x00)
-    // 3. return offset of length placeholder
-    (void)tag;
-    return 0;
+    putTag(tag);
+    // Мы пока не знаем длину, поэтому ставим placeholder 0x00.
+    size_t anchorOffset = m_out.size();
+    putByte(0x00);
+
+    return anchorOffset;  // вернём позицию, где нужно будет записать длину
 }
 
-void BerWriter::endSequence(std::size_t anchorOffset) {
-    // TODO:
-    // 1. compute body length = current_size - (anchorOffset + placeholder_size)
-    // 2. overwrite placeholder with correct length encoding
-    // 3. если длина требует long-form — сдвинуть хвостовые байты
-    (void)anchorOffset;
+void BerWriter::endSequence(size_t anchorOffset) {
+    // 1) Длина содержимого SEQUENCE
+    size_t contentStart = anchorOffset + 1;
+    size_t contentLength = m_out.size() - contentStart;
+
+    // 2) Сгенерируем BER-код длины во временный буфер
+    std::vector<uint8_t> lenBuf;
+    {
+        // Временный writer для длины
+        BerWriter tmp(lenBuf);
+        tmp.putLength(contentLength);
+    }
+
+    // 3) Текущий placeholder занимает 1 байт,
+    // но может понадобиться 1, 2 или 3 байта.
+    size_t oldLenFieldSize = 1;
+    size_t newLenFieldSize = lenBuf.size();
+
+    // 4) Если newLenFieldSize != oldLenFieldSize → нужно сдвинуть данные
+    if (newLenFieldSize != oldLenFieldSize) {
+        // сдвигаем хвост вправо
+        m_out.resize(m_out.size() + (newLenFieldSize - oldLenFieldSize));
+        memmove(&m_out[anchorOffset + newLenFieldSize], &m_out[anchorOffset + oldLenFieldSize],
+                contentLength);
+    }
+
+    // 5) Вставляем длину
+    for (size_t i = 0; i < newLenFieldSize; i++) m_out[anchorOffset + i] = lenBuf[i];
 }
