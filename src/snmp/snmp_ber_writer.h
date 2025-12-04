@@ -61,4 +61,4 @@ private:
     std::vector<uint8_t>& m_out;
 };
 
-#endif // SNMP_BER_WRITER_H
+#endif  // SNMP_BER_WRITER_H
