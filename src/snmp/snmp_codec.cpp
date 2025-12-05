@@ -1,6 +1,8 @@
 #include "snmp/snmp_codec.h"
 
+#include <cstring>
 #include <cstdio>  // временно для отладки (потом уберём)
+
 
 #if 1 // public
 // ============================================================
@@ -96,12 +98,12 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
                                         const UpsDataStore& store,
                                         std::vector<uint8_t>& out,
                                         ErrorMessage* err) {
-    // TODO: implement top-level SNMP message assembly
-    // 30 SEQUENCE
-    //   02 INTEGER version
-    //   04 OCTET STRING community
-    //   A2 <GetResponse PDU>
-    return false;
+    BerWriter w(out);
+    // ВРЕМЕННО: кодируем INTEGER из requestId,
+    // чтобы тесты могли проверять работу encodeInteger()
+    encodeInteger(w, req.requestId);
+
+    return true;
 }
 
 #endif
@@ -362,7 +364,58 @@ bool snmp::SnmpCodec::readVarBind(const uint8_t*& p,
 // ============================================================
 
 void snmp::SnmpCodec::encodeInteger(BerWriter& w, int value) const {
-    // TODO: implement ASN.1 INTEGER encoding
+    // Шаг 1: представляем число в виде 4 bytes big-endian
+    uint8_t raw[4];
+    raw[0] = (value >> 24) & 0xFF;
+    raw[1] = (value >> 16) & 0xFF;
+    raw[2] = (value >> 8) & 0xFF;
+    raw[3] = value & 0xFF;
+
+    // Шаг 2: удаляем лишние leading bytes
+    int start = 0;
+    while (start < 3) {
+        // Если число положительное и raw[start] == 0x00,
+        // но следующий байт < 0x80 - безопасно удалить
+        if (raw[start] == 0x00 && (raw[start + 1] & 0x80) == 0) {
+            start++;
+            continue;
+        }
+        // Если число отрицательное и raw[start] == 0xFF,
+        // но следующий байт >= 0x80 - безопасно удалить
+        if (raw[start] == 0xFF && (raw[start + 1] & 0x80) == 0x80) {
+            start++;
+            continue;
+        }
+        break;
+    }
+
+    const uint8_t* encoded = raw + start;
+    size_t n = 4 - start;
+
+    // Шаг 3: проверка необходимости добавления leading byte
+    bool positive = (value >= 0);
+
+    if (positive && (encoded[0] & 0x80)) {
+        // нужно добавить 0x00
+        uint8_t tmp[5];
+        tmp[0] = 0x00;
+        memcpy(tmp + 1, encoded, n);
+        encoded = tmp;
+        n += 1;
+
+    } else if (!positive && (encoded[0] & 0x80) == 0) {
+        // отрицательное число, но старший бит = 0 - prepend 0xFF
+        uint8_t tmp[5];
+        tmp[0] = 0xFF;
+        memcpy(tmp + 1, encoded, n);
+        encoded = tmp;
+        n += 1;
+    }
+
+    // Шаг 4: ASN.1 INTEGER
+    w.putTag(TAG_INTEGER);
+    w.putLength(n);
+    w.putBytes(encoded, n);
 }
 
 void snmp::SnmpCodec::encodeOctetString(BerWriter& w, const std::string& str) const {
