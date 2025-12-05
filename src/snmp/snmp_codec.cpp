@@ -99,8 +99,9 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
                                         std::vector<uint8_t>& out,
                                         ErrorMessage* err) {
     BerWriter w(out);
-    encodeNull(w);
-
+    if (!req.oids.empty()) {
+        encodeOid(w, req.oids[0]);
+    }
     return true;
 }
 
@@ -427,8 +428,63 @@ void snmp::SnmpCodec::encodeNull(BerWriter& w) const {
     w.putLength(0);      // длина = 0
 }
 
-void snmp::SnmpCodec::encodeOid(BerWriter& w, const Oid& oid) const {
-    // TODO: implement ASN.1 OBJECT IDENTIFIER encoding
+void snmp::SnmpCodec::encodeOid(BerWriter& w, const Oid& oidStr) const {
+    // ------------------------------------------------------------
+    // 1. Парсим OID "1.3.6.1.4.1.9999.1" -> [1,3,6,1,4,1,9999,1]
+    // ------------------------------------------------------------
+    std::vector<uint32_t> parts;
+    size_t pos = 0;
+    while (pos < oidStr.size()) {
+        size_t dot = oidStr.find('.', pos);
+        std::string token =
+            (dot == std::string::npos) ? oidStr.substr(pos) : oidStr.substr(pos, dot - pos);
+        parts.push_back(std::stoul(token));
+        if (dot == std::string::npos) break;
+        pos = dot + 1;
+    }
+    if (parts.size() < 2) {
+        w.putTag(TAG_OID);
+        w.putLength(0);
+        return;
+    }
+
+    // ------------------------------------------------------------
+    // 2. ASN.1 правило: первый байт = 40 * X + Y
+    // ------------------------------------------------------------
+    uint8_t first = uint8_t(parts[0] * 40 + parts[1]);
+    std::vector<uint8_t> enc;
+    enc.push_back(first);
+
+    // ------------------------------------------------------------
+    // Функция минимального BER base-128 кодирования
+    // ------------------------------------------------------------
+    auto encodeBase128 = [&](uint32_t value) {
+        uint8_t tmp[10];
+        int count = 0;
+        do {
+            tmp[count++] = value & 0x7F;
+            value >>= 7;
+        } while (value > 0);
+        for (int i = count - 1; i >= 0; --i) {
+            uint8_t b = tmp[i];
+            if (i != 0) b |= 0x80;  // continuation bit
+            enc.push_back(b);
+        }
+    };
+
+    // ------------------------------------------------------------
+    // 3. Кодируем все компоненты, начиная с третьего
+    // ------------------------------------------------------------
+    for (size_t i = 2; i < parts.size(); ++i) {
+        encodeBase128(parts[i]);
+    }
+
+    // ------------------------------------------------------------
+    // 4. Собираем TLV (TAG_OID | LENGTH | VALUE)
+    // ------------------------------------------------------------
+    w.putTag(TAG_OID);
+    w.putLength(enc.size());
+    w.putBytes(enc.data(), enc.size());
 }
 
 // ============================================================

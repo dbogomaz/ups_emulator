@@ -144,7 +144,7 @@ TEST_F(SnmpEncoderTest, EncodeOctetString_Text) {
         'H','e','l','l','o'
     });
 }
-#endif
+
 
 // ============================================================
 // Часть 3 — ASN.1 NULL
@@ -153,26 +153,55 @@ TEST_F(SnmpEncoderTest, EncodeOctetString_Text) {
 TEST_F(SnmpEncoderTest, EncodeNull) {
     req.requestId = 0;
     // временно encodeGetResponse вызывает encodeNull()
-    ErrorMessage err;
     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
     expectBytes({
         0x05, 0x00  // ASN.1 NULL
     });
 }
-
+#endif
 // ============================================================
 // Часть 4 — OBJECT IDENTIFIER
 // ============================================================
 
-// Тест 4.1: OID базовый
-// TEST_F(SnmpEncoderTest, EncodeOid_Simple) {
-//     // TODO
-// }
+TEST_F(SnmpEncoderTest, EncodeOid_Simple) {
+    req.oids = { "1.3.6.1.4.1.9999.1" };
+    ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
+    expectBytes({
+        0x06, 0x08,
+        0x2B,       // 1*40 + 3
+        0x06, 0x01, 0x04, 0x01,
+        0xCE, 0x0F, // 9999 encoded in base-128
+        0x01        // last component
+    });
+}
 
 // Тест 4.2: OID со значениями > 127
-// TEST_F(SnmpEncoderTest, EncodeOid_Long) {
-//     // TODO
-// }
+TEST_F(SnmpEncoderTest, EncodeOid_Long) {
+    req.oids = { "1.3.6.1.4.1.5000000.1" };
+    ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
+    expectBytes({
+        0x06,       // TAG_OID
+        0x0A,       // length = 10
+        0x2B,       // 1*40 + 3
+        0x06, 0x01, 0x04, 0x01,
+        // base-128 encoding of 5,000,000
+        0x82, 0xB1, 0x96, 0x40,
+        0x01        // last component
+    });
+}
+
+// Тест 4.3: Все компоненты OID < 128 (простейший случай)
+TEST_F(SnmpEncoderTest, EncodeOid_AllSmall) {
+    req.oids = { "1.3.6.1.2.3.4.5.6" };
+    ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
+    expectBytes({
+        0x06,       // TAG_OID
+        0x08,       // length = 8
+        0x2B,       // 1*40 + 3
+        0x06, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06
+    });
+}
+
 
 // ============================================================
 // Часть 5 — VarBind (OID + Value)
