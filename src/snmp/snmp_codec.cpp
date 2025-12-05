@@ -99,9 +99,7 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
                                         std::vector<uint8_t>& out,
                                         ErrorMessage* err) {
     BerWriter w(out);
-    // ВРЕМЕННО: кодируем INTEGER из requestId,
-    // чтобы тесты могли проверять работу encodeInteger()
-    encodeOctetString(w, req.community);
+    encodeNull(w);
 
     return true;
 }
@@ -425,7 +423,8 @@ void snmp::SnmpCodec::encodeOctetString(BerWriter& w, const std::string& str) co
 }
 
 void snmp::SnmpCodec::encodeNull(BerWriter& w) const {
-    // TODO: implement ASN.1 NULL encoding
+    w.putTag(TAG_NULL);  // 0x05
+    w.putLength(0);      // длина = 0
 }
 
 void snmp::SnmpCodec::encodeOid(BerWriter& w, const Oid& oid) const {
