@@ -99,9 +99,20 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
                                         std::vector<uint8_t>& out,
                                         ErrorMessage* err) {
     BerWriter w(out);
-    if (!req.oids.empty()) {
-        encodeOid(w, req.oids[0]);
+
+    if (req.oids.empty()) {
+        return false;
     }
+
+    const std::string& oid = req.oids[0];
+    const UpsParameter* param = nullptr;
+
+    if (store.has(oid)) {
+        param = store.get(oid);
+    }
+
+    encodeVarBind(w, oid, param);
+
     return true;
 }
 
@@ -492,7 +503,43 @@ void snmp::SnmpCodec::encodeOid(BerWriter& w, const Oid& oidStr) const {
 // ============================================================
 
 void snmp::SnmpCodec::encodeVarBind(BerWriter& w, const Oid& oid, const UpsParameter* param) const {
-    // TODO: implement VarBind = SEQUENCE { oid, value }
+    // -------------------------------
+    // 1. Начинаем VarBind (SEQUENCE)
+    // -------------------------------
+    size_t seqStart = w.beginSequence(TAG_SEQUENCE);
+
+    // -------------------------------
+    // 2. OID
+    // -------------------------------
+    encodeOid(w, oid);
+
+    // -------------------------------
+    // 3. Значение
+    // -------------------------------
+    if (!param) {
+        // Нет значения - ASN.1 NULL
+        encodeNull(w);
+    } else {
+        switch (param->type) {
+            case UpsParameterType::Integer:
+                encodeInteger(w, std::stoi(param->value));
+                break;
+
+            case UpsParameterType::String:
+                encodeOctetString(w, param->value);
+                break;
+
+            default:
+                // если тип пока не реализован - NULL
+                encodeNull(w);
+                break;
+        }
+    }
+
+    // -------------------------------
+    // 4. Завершаем SEQUENCE
+    // -------------------------------
+    w.endSequence(seqStart);
 }
 
 void snmp::SnmpCodec::encodeVarBindList(BerWriter& w,
