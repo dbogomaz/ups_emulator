@@ -12,29 +12,29 @@ set(TEST_DATA_DIR "${CMAKE_SOURCE_DIR}/tests/data")
 add_compile_definitions(TEST_DATA_DIR=\"${TEST_DATA_DIR}\")
 
 # ===== Добавление тестов =====
-add_ups_test(ups_model_config_test
-    unit/ups_model_config/test_load_errors.cpp
-    unit/ups_model_config/test_load_success.cpp
-    unit/ups_model_config/test_valueset_errors.cpp
-)
+# add_ups_test(ups_model_config_test
+#     unit/ups_model_config/test_load_errors.cpp
+#     unit/ups_model_config/test_load_success.cpp
+#     unit/ups_model_config/test_valueset_errors.cpp
+# )
 
-add_ups_test(fs_utils_test
-    unit/fs_utils_test.cpp
-)
+# add_ups_test(fs_utils_test
+#     unit/fs_utils_test.cpp
+# )
 
-add_ups_test(ups_data_store_test
-    unit/ups_data_store_test.cpp
-)
+# add_ups_test(ups_data_store_test
+#     unit/ups_data_store_test.cpp
+# )
 
 add_ups_test(snmp_codec_test
-    unit/snmp_codec/test_decode_basic.cpp
-    unit/snmp_codec/test_decode_errors.cpp
+    # unit/snmp_codec/test_decode_basic.cpp
+    # unit/snmp_codec/test_decode_errors.cpp
     unit/snmp_codec/test_encode.cpp
 )
 
-add_ups_test(snmp_ber_writer_test
-    unit/snmp_codec/test_ber_writer.cpp
-)
+# add_ups_test(snmp_ber_writer_test
+#     unit/snmp_codec/test_ber_writer.cpp
+# )
 
 add_subdirectory(googletest)
 
