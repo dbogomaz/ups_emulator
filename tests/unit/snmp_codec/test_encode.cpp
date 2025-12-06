@@ -140,7 +140,7 @@ TEST_F(SnmpEncoderTest, EncodeNull) {
 }
 #endif
 
-#if 1  // Часть 4 — OBJECT IDENTIFIER (OID)
+#if 0  // Часть 4 — OBJECT IDENTIFIER (OID)
 // ============================================================
 // Часть 4 — OBJECT IDENTIFIER (OID)
 // ============================================================
@@ -179,54 +179,50 @@ TEST_F(SnmpEncoderTest, EncodeOid_AllSmall) {
 
 #endif
 
+#if 1  // Часть 5 — VarBind (OID + Value)
 // ============================================================
 // Часть 5 — VarBind (OID + Value)
 // ============================================================
 
 // Тест 5.1: VarBind = NULL (param == nullptr)
-// TEST_F(SnmpEncoderTest, EncodeVarBind_NullValue) {
-//    req.oids = { "1.3.6.1.4.1.9999.1" };
-//    // специально создаём store без параметра - param == nullptr
-//    ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//    expectBytes({
-//        0x30, 0x0C,                // SEQUENCE (VarBind), length 12
-//        0x06, 0x08,                // OID, len=8
-//        0x2B, 0x06, 0x01, 0x04, 0x01, 0xCE, 0x0F, 0x01,
-//        0x05, 0x00                 // NULL
-//    });
-//}
+TEST_F(SnmpEncoderTest, EncodeVarBind_NullValue) {
+    // OID без параметра - param == nullptr
+    SnmpCodecTestAccess::encodeVarBind(codec, *w, "1.3.6.1.4.1.9999.1", nullptr);
+    expectBytes({
+        0x30, 0x0C,                                                 // SEQUENCE, length = 12
+        0x06, 0x08,                                                 // OID, length = 8
+        0x2B, 0x06, 0x01, 0x04, 0x01, 0xCE, 0x0F, 0x01, 0x05, 0x00  // NULL
+    });
+}
 
-//// Тест 5.2: VarBind = INTEGER
-// TEST_F(SnmpEncoderTest, EncodeVarBind_Integer) {
-//     req.oids = { "1.3.6.1.4.1.9999.2" };
-//     UpsParameter p;
-//     p.type = UpsParameterType::Integer;
-//     p.value = "123";
-//     store.set("1.3.6.1.4.1.9999.2", p.value);
-//     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//     expectBytes({
-//         0x30, 0x0D,
-//         0x06, 0x08,
-//         0x2B, 0x06, 0x01, 0x04, 0x01, 0xCE, 0x0F, 0x02,
-//         0x02, 0x01, 0x7B   // INTEGER 123 (0x7B)
-//     });
-// }
+// Тест 5.2: VarBind = INTEGER
+TEST_F(SnmpEncoderTest, EncodeVarBind_Integer) {
+    UpsParameter p;
+    p.type = UpsParameterType::Integer;
+    p.value = "123";
+    SnmpCodecTestAccess::encodeVarBind(codec, *w, "1.3.6.1.4.1.9999.2", &p);
+    expectBytes({
+        0x30, 0x0D,                                                       // SEQUENCE, len = 13
+        0x06, 0x08,                                                       // OID, len 8
+        0x2B, 0x06, 0x01, 0x04, 0x01, 0xCE, 0x0F, 0x02, 0x02, 0x01, 0x7B  // INTEGER 123
+    });
+}
 
-// // Тест 5.3: VarBind = STRING
-// TEST_F(SnmpEncoderTest, EncodeVarBind_String) {
-//     req.oids = { "1.3.6.1.4.1.9999.3" };
-//     UpsParameter p;
-//     p.type = UpsParameterType::String;
-//     p.value = "UPS";
-//     store.set("1.3.6.1.4.1.9999.3", p.value);
-//     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//     expectBytes({
-//         0x30, 0x0E,                 // seq len 14
-//         0x06, 0x08,
-//         0x2B, 0x06, 0x01, 0x04, 0x01, 0x92, 0x0F, 0x03,
-//         0x04, 0x03, 'U', 'P', 'S'   // OCTET STRING "UPS"
-//     });
-// }
+// Тест 5.3: VarBind = STRING
+TEST_F(SnmpEncoderTest, EncodeVarBind_String) {
+    UpsParameter p;
+    p.type = UpsParameterType::String;
+    p.value = "UPS";
+    SnmpCodecTestAccess::encodeVarBind(codec, *w, "1.3.6.1.4.1.9999.3", &p);
+    expectBytes({
+        0x30, 0x0F,  // SEQUENCE, len = 15
+        0x06, 0x08,  // OID
+        0x2B, 0x06, 0x01, 0x04, 0x01, 0xCE, 0x0F, 0x03, 0x04, 0x03, 'U', 'P',
+        'S'  // OCTET STRING "UPS"
+    });
+}
+
+#endif
 
 // ============================================================
 // Часть 6 — VarBindList (SEQUENCE OF)
