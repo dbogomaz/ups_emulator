@@ -545,10 +545,16 @@ void snmp::SnmpCodec::encodeVarBindList(BerWriter& w, const std::vector<Oid>& oi
     w.endSequence(seqStart);
 }
 
-void snmp::SnmpCodec::encodeGetResponsePdu(BerWriter& w,
-                                           const SnmpGetRequest& req,
+void snmp::SnmpCodec::encodeGetResponsePdu(BerWriter& w, const SnmpGetRequest& req,
                                            const UpsDataStore& store) const {
-    // TODO: implement GetResponse-PDU
+    // Begin PDU (tag = A2)
+    size_t pduStart = w.beginSequence(TAG_GETRESPONSE);
+    encodeInteger(w, req.requestId);// request-id
+    encodeInteger(w, 0); // error-status = 0
+    encodeInteger(w, 0); // error-index = 0
+    encodeVarBindList(w, req.oids, store); // VarBindList
+    // close PDU sequence
+    w.endSequence(pduStart);
 }
 
 #endif
