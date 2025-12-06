@@ -27,6 +27,11 @@ struct SnmpGetRequest {
 };
 
 // ------------------------------------------------------------
+// Класс - обертка для тестирования приватных методов
+// ------------------------------------------------------------
+class SnmpCodecTestAccess;
+
+// ------------------------------------------------------------
 // SNMP Codec (ASN.1 BER encoder/decoder for SNMP v1, v2c)
 // ------------------------------------------------------------
 class SnmpCodec {
@@ -100,7 +105,42 @@ private:
     void encodeGetResponsePdu(BerWriter& w,
                               const SnmpGetRequest& req,
                               const UpsDataStore& store) const;
+    // friend класс для тестирования
+    friend class SnmpCodecTestAccess;
 };
+
+class SnmpCodecTestAccess {
+public:
+    static void encodeInteger(SnmpCodec& c, BerWriter& w, int v) {
+        c.encodeInteger(w, v);
+    }
+    static void encodeOctetString(SnmpCodec& c, BerWriter& w, const std::string& s) {
+        c.encodeOctetString(w, s);
+    }
+    static void encodeNull(SnmpCodec& c, BerWriter& w) {
+        c.encodeNull(w);
+    }
+    static void encodeOid(SnmpCodec& c, BerWriter& w, const Oid& oid) {
+        c.encodeOid(w, oid);
+    }
+    static void encodeVarBind(SnmpCodec& c, BerWriter& w, const Oid& oid,
+                              const UpsParameter* p) {
+        c.encodeVarBind(w, oid, p);
+    }
+    static void encodeVarBindList(SnmpCodec& c,
+                                  BerWriter& w,
+                                  const std::vector<Oid>& oids,
+                                  const UpsDataStore& store) {
+        c.encodeVarBindList(w, oids, store);
+    }
+    static void encodeGetResponsePdu(SnmpCodec& c,
+                                     BerWriter& w,
+                                     const SnmpGetRequest& req,
+                                     const UpsDataStore& store) {
+        c.encodeGetResponsePdu(w, req, store);
+    }
+};
+
 
 }  // namespace snmp
 
