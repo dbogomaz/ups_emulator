@@ -25,7 +25,7 @@ protected:
         EXPECT_EQ(buf, exp);
     }
 };
-#if 1
+#if 0  // Часть 1 — ASN.1 INTEGER
 // ============================================================
 // Часть 1 — ASN.1 INTEGER
 // ============================================================
@@ -103,37 +103,30 @@ TEST_F(SnmpEncoderTest, EncodeInteger_MinInt32) {
 
 #endif
 
+#if 1  // Часть 2 — OCTET STRING
 // ============================================================
 // Часть 2 — OCTET STRING
 // ============================================================
 
-//// Тест 2.1: Пустая строка
-// TEST_F(SnmpEncoderTest, EncodeOctetString_Empty) {
-//     req.community = "";
-//     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//     expectBytes({
-//         0x04, 0x00
-//     });
-// }
+// Тест 2.1: Пустая строка
+TEST_F(SnmpEncoderTest, EncodeOctetString_Empty) {
+    SnmpCodecTestAccess::encodeOctetString(codec, *w, "");
+    expectBytes({0x04, 0x00});
+}
 
-//// Тест 2.2: Текстовая строка - один символ
-// TEST_F(SnmpEncoderTest, EncodeOctetString_SingleChar) {
-//     req.community = "A";
-//     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//     expectBytes({
-//         0x04, 0x01, 0x41
-//     });
-// }
+// Тест 2.2: Текстовая строка - один символ
+TEST_F(SnmpEncoderTest, EncodeOctetString_SingleChar) {
+    SnmpCodecTestAccess::encodeOctetString(codec, *w, "A");
+    expectBytes({0x04, 0x01, 0x41});
+}
 
-//// Тест 2.3:Текстовая строка "Hello"
-// TEST_F(SnmpEncoderTest, EncodeOctetString_Text) {
-//     req.community = "Hello";
-//     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//     expectBytes({
-//         0x04, 0x05,
-//         'H','e','l','l','o'
-//     });
-// }
+// Тест 2.3:Текстовая строка "Hello"
+TEST_F(SnmpEncoderTest, EncodeOctetString_Text) {
+    SnmpCodecTestAccess::encodeOctetString(codec, *w, "Hello");
+    expectBytes({0x04, 0x05, 'H', 'e', 'l', 'l', 'o'});
+}
+
+#endif
 
 // ============================================================
 // Часть 3 — ASN.1 NULL
