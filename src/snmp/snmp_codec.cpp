@@ -98,21 +98,6 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
                                         const UpsDataStore& store,
                                         std::vector<uint8_t>& out,
                                         ErrorMessage* err) {
-    BerWriter w(out);
-
-    if (req.oids.empty()) {
-        return false;
-    }
-
-    const std::string& oid = req.oids[0];
-    const UpsParameter* param = nullptr;
-
-    if (store.has(oid)) {
-        param = store.get(oid);
-    }
-
-    encodeVarBind(w, oid, param);
-
     return true;
 }
 
