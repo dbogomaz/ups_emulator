@@ -103,7 +103,7 @@ TEST_F(SnmpEncoderTest, EncodeInteger_MinInt32) {
 
 #endif
 
-#if 1  // Часть 2 — OCTET STRING
+#if 0  // Часть 2 — OCTET STRING
 // ============================================================
 // Часть 2 — OCTET STRING
 // ============================================================
@@ -128,18 +128,17 @@ TEST_F(SnmpEncoderTest, EncodeOctetString_Text) {
 
 #endif
 
+#if 1  // Часть 3 — ASN.1 NULL
 // ============================================================
 // Часть 3 — ASN.1 NULL
 // ============================================================
-
-// TEST_F(SnmpEncoderTest, EncodeNull) {
-//     req.requestId = 0;
-//     // временно encodeGetResponse вызывает encodeNull()
-//     ASSERT_TRUE(codec.encodeGetResponse(req, store, buf, &err));
-//     expectBytes({
-//         0x05, 0x00  // ASN.1 NULL
-//     });
-// }
+TEST_F(SnmpEncoderTest, EncodeNull) {
+    SnmpCodecTestAccess::encodeNull(codec, *w);
+    expectBytes({
+        0x05, 0x00  // TAG_NULL, length=0
+    });
+}
+#endif
 
 // ============================================================
 // Часть 4 — OBJECT IDENTIFIER
