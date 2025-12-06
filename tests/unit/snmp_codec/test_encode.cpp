@@ -12,6 +12,11 @@ protected:
     SnmpCodec codec;
     BerWriter* w = nullptr;
 
+    UpsModelConfig cfg;
+    std::string dataDir = std::string(TEST_DATA_DIR) + "/snmp_codec";
+    // Полный путь к файлу тестовых данных
+    std::string data(const std::string& name) const { return dataDir + "/" + name; }
+
     void SetUp() override {
         buf.clear();
         w = new BerWriter(buf);
@@ -25,6 +30,7 @@ protected:
         EXPECT_EQ(buf, exp);
     }
 };
+
 #if 0  // Часть 1 — ASN.1 INTEGER
 // ============================================================
 // Часть 1 — ASN.1 INTEGER
@@ -179,7 +185,7 @@ TEST_F(SnmpEncoderTest, EncodeOid_AllSmall) {
 
 #endif
 
-#if 1  // Часть 5 — VarBind (OID + Value)
+#if 0  // Часть 5 — VarBind (OID + Value)
 // ============================================================
 // Часть 5 — VarBind (OID + Value)
 // ============================================================
@@ -221,22 +227,65 @@ TEST_F(SnmpEncoderTest, EncodeVarBind_String) {
         'S'  // OCTET STRING "UPS"
     });
 }
-
 #endif
 
+#if 1  // Часть 6 — VarBindList (SEQUENCE OF)
 // ============================================================
 // Часть 6 — VarBindList (SEQUENCE OF)
 // ============================================================
 
 // Тест 6.1: Пустой список
-// TEST_F(SnmpEncoderTest, EncodeVarBindList_Empty) {
-//     // TODO
-// }
+TEST_F(SnmpEncoderTest, EncodeVarBindList_Empty) {
+    // Пустой список OID
+    std::vector<Oid> oids;
+    // Загружаем конфиг
+    ASSERT_TRUE(cfg.load(data("varbindlist_basic.ini"), "APC"));
+    UpsDataStore store;
+    ASSERT_TRUE(store.init(cfg));
+    // Вызываем encodeVarBindList через тестовый доступ
+    SnmpCodecTestAccess::encodeVarBindList(codec, *w, oids, store);
+    // Ожидаем SEQUENCE длиной 0
+    expectBytes({0x30, 0x00});
+}
 
 // Тест 6.2: Два VarBind
-// TEST_F(SnmpEncoderTest, EncodeVarBindList_TwoItems) {
-//     // TODO
-// }
+TEST_F(SnmpEncoderTest, EncodeVarBindList_TwoItems) {
+    // 1) Загружаем конфиг
+    ASSERT_TRUE(cfg.load(data("varbindlist_basic.ini"), "APC"));
+    UpsDataStore store;
+    ASSERT_TRUE(store.init(cfg));
+
+    // 2) Устанавливаем два значения
+    store.set(cfg.oids().inputVoltageOID, "230");  // inputVoltage 1.3.6.1.4.1.318.1.1.1.3.2.1.0
+    store.set(cfg.oids().batteryStatusOID, "2");   // batteryStatus 1.3.6.1.4.1.318.1.1.1.2.1.1.0
+
+    // 3) Список OID для VarBindList
+    std::vector<Oid> oids = {cfg.oids().inputVoltageOID, cfg.oids().batteryStatusOID};
+
+    // 4) Кодируем
+    SnmpCodecTestAccess::encodeVarBindList(codec, *w, oids, store);
+    expectBytes({
+        // --- VarBindList (SEQUENCE) ---
+        0x30, 0x2B,  // len 43
+        // --- VarBind #1 ---
+        0x30, 0x14,                                // len 20
+        0x06, 0x0E,                                // len 14
+        0x2B,                                      // 1*40+3
+        0x06, 0x01, 0x04, 0x01,                    // 6.1.4.1
+        0x82, 0x3E,                                // 318
+        0x01, 0x01, 0x01, 0x03, 0x02, 0x01, 0x00,  // 1.1.1.3.2.1.0
+        0x02, 0x02, 0x00, 0xE6,                    // INTEGER 230
+        // --- VarBind #2 ---
+        0x30, 0x13,                                // len 19
+        0x06, 0x0E,                                // len 14
+        0x2B,                                      // 1*40+3
+        0x06, 0x01, 0x04, 0x01,                    // 6.1.4.1
+        0x82, 0x3E,                                // 318
+        0x01, 0x01, 0x01, 0x02, 0x01, 0x01, 0x00,  // 1.1.1.2.1.1.0
+        0x02, 0x01, 0x02                           // INTEGER 2
+    });
+}
+#endif
 
 // ============================================================
 // Часть 7 — GetResponse-PDU

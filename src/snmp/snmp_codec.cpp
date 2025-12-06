@@ -527,10 +527,22 @@ void snmp::SnmpCodec::encodeVarBind(BerWriter& w, const Oid& oid, const UpsParam
     w.endSequence(seqStart);
 }
 
-void snmp::SnmpCodec::encodeVarBindList(BerWriter& w,
-                                        const std::vector<Oid>& oids,
+void snmp::SnmpCodec::encodeVarBindList(BerWriter& w, const std::vector<Oid>& oids,
                                         const UpsDataStore& store) const {
-    // TODO: implement SEQUENCE OF VarBind
+    // Начинаем SEQUENCE OF VarBind
+    size_t seqStart = w.beginSequence(TAG_SEQUENCE);
+
+    // Каждый VarBind = SEQUENCE { OID, Value }
+    for (const auto& oid : oids) {
+        const UpsParameter* param = nullptr;
+        if (store.has(oid)) {
+            param = store.get(oid);
+        }
+        encodeVarBind(w, oid, param);
+    }
+
+    // Завершаем SEQUENCE OF
+    w.endSequence(seqStart);
 }
 
 void snmp::SnmpCodec::encodeGetResponsePdu(BerWriter& w,
