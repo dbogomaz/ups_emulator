@@ -387,45 +387,22 @@ void snmp::SnmpCodec::encodeInteger(BerWriter& w, int value) const {
     // Шаг 2: удаляем лишние leading bytes
     int start = 0;
     while (start < 3) {
-        // Если число положительное и raw[start] == 0x00,
-        // но следующий байт < 0x80 - безопасно удалить
+        // положительное число - удаляем 00, если следующий байт < 0x80
         if (raw[start] == 0x00 && (raw[start + 1] & 0x80) == 0) {
             start++;
             continue;
         }
-        // Если число отрицательное и raw[start] == 0xFF,
-        // но следующий байт >= 0x80 - безопасно удалить
+        // положительное число - удаляем 00, если следующий байт < 0x80
         if (raw[start] == 0xFF && (raw[start + 1] & 0x80) == 0x80) {
             start++;
             continue;
         }
         break;
     }
-
     const uint8_t* encoded = raw + start;
     size_t n = 4 - start;
 
-    // Шаг 3: проверка необходимости добавления leading byte
-    bool positive = (value >= 0);
-
-    if (positive && (encoded[0] & 0x80)) {
-        // нужно добавить 0x00
-        uint8_t tmp[5];
-        tmp[0] = 0x00;
-        memcpy(tmp + 1, encoded, n);
-        encoded = tmp;
-        n += 1;
-
-    } else if (!positive && (encoded[0] & 0x80) == 0) {
-        // отрицательное число, но старший бит = 0 - prepend 0xFF
-        uint8_t tmp[5];
-        tmp[0] = 0xFF;
-        memcpy(tmp + 1, encoded, n);
-        encoded = tmp;
-        n += 1;
-    }
-
-    // Шаг 4: ASN.1 INTEGER
+    // Шаг 3: ASN.1 INTEGER
     w.putTag(TAG_INTEGER);
     w.putLength(n);
     w.putBytes(encoded, n);
