@@ -101,16 +101,24 @@ void SnmpAgent::processPacketSync(const uint8_t* data,
                                   size_t size,
                                   const sockaddr_in& clientAddr,
                                   socklen_t clientLen) {
-    // Пока здесь только каркас
-    // Здесь позже появится:
-    //
-    // 1. Decode GetRequest
-    // 2. Получение значений из UpsDataStore
-    // 3. Encode GetResponse
-    // 4. sendResponse(...)
-    //
+    snmp::SnmpGetRequest req;
+    std::string err;
 
-    printf("processPacketSync(): packet processing stub (%zu bytes)\n", size);
+    // 1. Декодирование запроса
+    if (!m_codec.decodeGetRequest(data, size, req, &err)) {
+        printf("SNMP decode error: %s\n", err.c_str());
+        return;  // пока просто игнорируем неверные запросы
+    }
+
+    // 2. Формирование ответа
+    std::vector<uint8_t> response;
+    if (!m_codec.encodeGetResponse(req, *m_store, response)) {
+        printf("SNMP encode error\n");
+        return;
+    }
+
+    // 3. Отправка клиенту
+    sendResponse(response.data(), response.size(), clientAddr, clientLen);
 }
 
 bool SnmpAgent::sendResponse(const uint8_t* data,
