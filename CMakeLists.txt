@@ -31,6 +31,7 @@ endif()
 
 if(1) # UPS CORE LIBRARY BLOCK
     set(UPS_CORE_SRC
+        src/snmp/snmp_agent.cpp
         src/snmp/snmp_ber_writer.cpp
         src/snmp/snmp_codec.cpp
 
