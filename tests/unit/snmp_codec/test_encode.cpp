@@ -229,7 +229,7 @@ TEST_F(SnmpEncoderTest, EncodeVarBind_String) {
 }
 #endif
 
-#if 1  // Часть 6 — VarBindList (SEQUENCE OF)
+#if 0  // Часть 6 — VarBindList (SEQUENCE OF)
 // ============================================================
 // Часть 6 — VarBindList (SEQUENCE OF)
 // ============================================================
@@ -287,20 +287,62 @@ TEST_F(SnmpEncoderTest, EncodeVarBindList_TwoItems) {
 }
 #endif
 
+#if 1 // Часть 7 — GetResponse-PDU
 // ============================================================
 // Часть 7 — GetResponse-PDU
 // ============================================================
 
 // Тест 7.1: Минимальный PDU
-// TEST_F(SnmpEncoderTest, EncodeGetResponsePdu_Basic) {
-//     // TODO
-// }
+TEST_F(SnmpEncoderTest, EncodeGetResponsePdu_Basic) {
+    SnmpGetRequest req;
+    req.requestId = 123;
+    UpsDataStore store;     // пустой store
+    std::vector<Oid> oids;  // пустой список
+    SnmpCodecTestAccess::encodeGetResponsePdu(codec, *w, req, store);
+    expectBytes({
+        0xA2, 0x0B,  // PDU len = 11
+        0x02, 0x01, 0x7B,  // request-id = 123
+        0x02, 0x01, 0x00,  // error-status
+        0x02, 0x01, 0x00,  // error-index
+        0x30, 0x00  // empty varbind list
+    });
+}
+#endif
 
+#if 1 // Часть 8 — Полный SNMP GET-RESPONSE Message
 // ============================================================
 // Часть 8 — Полный SNMP GET-RESPONSE Message
 // ============================================================
 
+
 // Тест 8.1: Полный GET-RESPONSE
-// TEST_F(SnmpEncoderTest, EncodeGetResponse_FullMessage) {
-//     // TODO
-// }
+TEST_F(SnmpEncoderTest, EncodeGetResponse_FullMessage) {
+    ASSERT_TRUE(cfg.load(data("varbindlist_basic.ini"), "APC"));
+    UpsDataStore store;
+    ASSERT_TRUE(store.init(cfg));
+    store.set(cfg.oids().batteryStatusOID, "2");
+    SnmpGetRequest req;
+    req.version = SnmpVersion::V_1;
+    req.community = "public";
+    req.requestId = 123;
+    req.oids = {cfg.oids().batteryStatusOID};
+    ASSERT_TRUE(codec.encodeGetResponse(req, store, buf));
+    expectBytes({
+        0x30, 0x2D,             // full message, len=45
+        0x02, 0x01, 0x00,       // version=0
+        0x04, 0x06, 'p','u','b','l','i','c',
+        0xA2, 0x20,             // GetResponse-PDU, len=32
+            0x02, 0x01, 0x7B,   // request-id=123
+            0x02, 0x01, 0x00,   // error-status
+            0x02, 0x01, 0x00,   // error-index
+            0x30, 0x15,         // VarBindList, len=21
+                0x30, 0x13,     // VarBind, len=19
+                    0x06, 0x0E, // OID len=14
+                        0x2B,
+                        0x06, 0x01, 0x04, 0x01,
+                        0x82, 0x3E,
+                        0x01, 0x01, 0x01, 0x02, 0x01, 0x01, 0x00,
+                    0x02, 0x01, 0x02  // INTEGER 2
+    });
+}
+#endif
