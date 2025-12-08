@@ -45,8 +45,7 @@ public:
     // Encode SNMP GET-RESPONSE (SNMP v1/v2c)
     bool encodeGetResponse(const SnmpGetRequest& req,
                            const UpsDataStore& store,
-                           std::vector<uint8_t>& out,
-                           ErrorMessage* err = nullptr);
+                           std::vector<uint8_t>& out);
 
 private:
     // ============================================================

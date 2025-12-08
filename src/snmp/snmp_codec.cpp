@@ -96,8 +96,26 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data,
 // ============================================================
 bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
                                         const UpsDataStore& store,
-                                        std::vector<uint8_t>& out,
-                                        ErrorMessage* err) {
+                                        std::vector<uint8_t>& out) {
+    out.clear();
+    BerWriter w(out);
+
+    // 1) Начинаем внешний SNMP message SEQUENCE
+    size_t msgStart = w.beginSequence(TAG_SEQUENCE);
+
+    // 2) Version SNMPv1 = 0, SNMPv2c = 1
+    int ver = (req.version == SnmpVersion::V_1 ? 0 : 1);
+    encodeInteger(w, ver);
+
+    // 3) Community
+    encodeOctetString(w, req.community);
+
+    // 4) PDU
+    encodeGetResponsePdu(w, req, store);
+
+    // 5) Закрываем message SEQUENCE
+    w.endSequence(msgStart);
+
     return true;
 }
 
