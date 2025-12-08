@@ -205,6 +205,18 @@ TEST_F(SnmpEncoderTest, EncodeOid_AllSmall) {
     // clang-format on
 }
 
+// Тест 4.4 Пустой OID
+TEST_F(SnmpEncoderTest, EncodeOid_EmptyString) {
+    SnmpCodecTestAccess::encodeOid(codec, *w, "");
+    expectBytes({ 0x06, 0x00 });
+}
+
+// Тест 4.5 В OID только один компонент "1"
+TEST_F(SnmpEncoderTest, EncodeOid_SingleComponent) {
+    SnmpCodecTestAccess::encodeOid(codec, *w, "1");
+    expectBytes({ 0x06, 0x00 });
+}
+
 #endif
 
 #if 1  // Часть 5 — VarBind (OID + Value)
@@ -256,6 +268,25 @@ TEST_F(SnmpEncoderTest, EncodeVarBind_String) {
     });
     // clang-format on
 }
+
+//  Тест 5.4: VarBind = неизвестный тип
+TEST_F(SnmpEncoderTest, EncodeVarBind_DefaultCase) {
+    UpsParameter p;
+    p.type = static_cast<UpsParameterType>(999);
+    p.value = "ignored";
+    SnmpCodecTestAccess::encodeVarBind(codec, *w, "1.3.6.1.4.1.9999.10", &p);
+    // Ожидаем VarBind: OID + NULL
+    // clang-format off
+    expectBytes({
+        0x30, 0x0C,
+        0x06, 0x08,
+        0x2B, 0x06, 0x01, 0x04, 0x01,
+        0xCE, 0x0F, 0x0A, // 10
+        0x05, 0x00
+    });
+    // clang-format on
+}
+
 #endif
 
 #if 1  // Часть 6 — VarBindList (SEQUENCE OF)
