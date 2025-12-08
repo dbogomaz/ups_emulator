@@ -27,11 +27,6 @@ private:
 
     // Ограничения для перечислимых параметров (OID → набор значений)
     std::unordered_map<Oid, const FieldValueSet*> m_valueSets{};
-
-    // Проверка корректности значения
-    bool validateValue(const UpsParameter& param,
-                       const UpsParameterValue& value,
-                       ErrorMessage* err) const;
 };
 
 #endif // UPS_DATA_STORE_H
