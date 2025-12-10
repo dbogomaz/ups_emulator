@@ -22,6 +22,10 @@ add_ups_test(fs_utils_test
     unit/fs_utils_test.cpp
 )
 
+add_ups_test(ini_section_reader_test
+    unit/utils/ini_section_reader_test.cpp
+)
+
 add_ups_test(ups_data_store_test
     unit/ups_data_store_test.cpp
 )
