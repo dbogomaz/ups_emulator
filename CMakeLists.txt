@@ -39,6 +39,7 @@ if(1) # UPS CORE LIBRARY BLOCK
         src/ups/ups_model_config.cpp
 
         src/utils/fs_utils.cpp
+        src/utils/ini_section_reader.cpp
         src/utils/string_utils.cpp
     )
 
