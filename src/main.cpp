@@ -20,14 +20,20 @@ int main() {
     }
 
     // устанавливаем значения
-    store.set(cfg.oids().batteryStatusOID, "2");
+    store.set(cfg.oids().modelNameOID, cfg.modelName());
+    // Входные параметры InputStatus
+    store.set(cfg.oids().inputVoltageOID, "230");
+    store.set(cfg.oids().inputFreqOID, "500");
+    // Выходные параметры OutputStatus
+    store.set(cfg.oids().outputVoltageOID, "220");
+    // Состояние батареи BatteryStatus
+    store.set(cfg.oids().batteryStatusOID,
+              cfg.definedFields().batteryStatusSet.nameToValue.begin()->first);
     store.set(cfg.oids().batteryTempOID, "23");
     store.set(cfg.oids().chargeRemainingOID, "78");
-    store.set(cfg.oids().inputFreqOID, "50");
-    store.set(cfg.oids().inputVoltageOID, "230");
-    store.set(cfg.oids().modelNameOID, "Smart-UPS RT 2000 XL");
-    store.set(cfg.oids().outputStatusOID, "2");
-    store.set(cfg.oids().outputVoltageOID, "220");
+    // Состояние выхода OutputStatus
+    store.set(cfg.oids().outputStatusOID,
+              cfg.definedFields().outputStatusSet.nameToValue.begin()->first);
 
     // Создаем SNMP-агент
     SnmpAgent agent(&store);
