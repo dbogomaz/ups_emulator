@@ -13,7 +13,7 @@ public:
     explicit SnmpAgent(UpsDataStore* store);
 
     // Инициализация UDP сокета
-    bool start(uint16_t port = 161);
+    bool bind(uint16_t port = 161);
 
     // Основной цикл обработки (блокирующий)
     void run();

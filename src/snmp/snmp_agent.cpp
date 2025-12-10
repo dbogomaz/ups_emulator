@@ -10,7 +10,7 @@ using namespace snmp;
 
 SnmpAgent::SnmpAgent(UpsDataStore* store) : m_store(store) {}
 
-bool SnmpAgent::start(uint16_t port) {
+bool SnmpAgent::bind(uint16_t port) {
     // Создаем UDP сокет
     m_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
     if (m_sock < 0) {
@@ -34,7 +34,7 @@ bool SnmpAgent::start(uint16_t port) {
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(port);
 
-    if (bind(m_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    if (::bind(m_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind");
         ::close(m_sock);
         m_sock = -1;
@@ -42,7 +42,7 @@ bool SnmpAgent::start(uint16_t port) {
     }
 
     m_running = true;
-    printf("SnmpAgent started on UDP port %u\n", port);
+    printf("SnmpAgent successfully bound to UDP port %u\n", port);
     return true;
 }
 
