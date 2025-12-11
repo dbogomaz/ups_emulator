@@ -1,50 +1,45 @@
 #include <iostream>
 
-#include "snmp/snmp_agent.h"
-#include "ups/ups_data_store.h"
-#include "ups/ups_model_config.h"
+#include "ups_emulator.h"
 
 int main() {
-    // Загружаем модель (например, из файла ups_models.ini)
-    UpsModelConfig cfg;
-    if (!cfg.load("config/ups_models.ini", "APC")) {
-        std::cerr << "Failed to load UPS model\n";
+    const std::string configPath = "config/ups_models.ini";
+
+    // Создаем эмулятор
+    UpsEmulator emulator(configPath);
+
+    if (!emulator.ok()) {
+        std::cerr << "Failed to initialize emulator: "
+                  << emulator.lastError() << "\n";
         return 1;
     }
 
-    // Инициализируем хранилище параметров
-    UpsDataStore store;
-    if (!store.init(cfg)) {
-        std::cerr << "Failed to init data store\n";
+    // Получаем список моделей
+    const auto& models = emulator.availableModels();
+    if (models.empty()) {
+        std::cerr << "No UPS models found.\n";
         return 1;
     }
 
-    // устанавливаем значения
-    store.set(cfg.oids().modelNameOID, cfg.modelName());
-    // Входные параметры InputStatus
-    store.set(cfg.oids().inputVoltageOID, "230");
-    store.set(cfg.oids().inputFreqOID, "500");
-    // Выходные параметры OutputStatus
-    store.set(cfg.oids().outputVoltageOID, "220");
-    // Состояние батареи BatteryStatus
-    store.set(cfg.oids().batteryStatusOID,
-              cfg.definedFields().batteryStatusSet.nameToValue.begin()->first);
-    store.set(cfg.oids().batteryTempOID, "23");
-    store.set(cfg.oids().chargeRemainingOID, "78");
-    // Состояние выхода OutputStatus
-    store.set(cfg.oids().outputStatusOID,
-              cfg.definedFields().outputStatusSet.nameToValue.begin()->first);
+    // Выбираем первую модель из списка
+    const auto& modelName = models[0];
+    std::cout << "Using model: " << modelName << "\n";
 
-    // Создаем SNMP-агент
-    SnmpAgent agent(&store);
-
-    if (!agent.start(161)) {
-        std::cerr << "Failed to start SNMP agent\n";
+    if (!emulator.selectModel(modelName)) {
+        std::cerr << "Failed to select model: "
+                  << emulator.lastError() << "\n";
         return 1;
     }
 
-    // Переходим в основной цикл
-    agent.run();
+    // Привязываем SNMP агент к порту 161
+    if (!emulator.bind(161)) {
+        std::cerr << "Failed to bind SNMP agent: "
+                  << emulator.lastError() << "\n";
+        return 1;
+    }
+
+    // Основной цикл
+    emulator.run();
 
     return 0;
 }

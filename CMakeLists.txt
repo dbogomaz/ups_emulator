@@ -5,6 +5,7 @@ if(1) # PROJECT CONFIG BLOCK
 
     set(PROJECT_INCLUDE_DIR 
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/emulator
         ${CMAKE_SOURCE_DIR}/src/snmp
         ${CMAKE_SOURCE_DIR}/src/ups
         ${CMAKE_SOURCE_DIR}/src/utils
@@ -31,6 +32,8 @@ endif()
 
 if(1) # UPS CORE LIBRARY BLOCK
     set(UPS_CORE_SRC
+        src/emulator/ups_emulator.cpp
+
         src/snmp/snmp_agent.cpp
         src/snmp/snmp_ber_writer.cpp
         src/snmp/snmp_codec.cpp
@@ -39,6 +42,7 @@ if(1) # UPS CORE LIBRARY BLOCK
         src/ups/ups_model_config.cpp
 
         src/utils/fs_utils.cpp
+        src/utils/ini_section_reader.cpp
         src/utils/string_utils.cpp
     )
 
