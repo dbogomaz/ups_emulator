@@ -11,14 +11,25 @@ using namespace snmp;
 SnmpAgent::SnmpAgent(UpsDataStore* store) : m_store(store) {}
 
 bool SnmpAgent::bind(uint16_t port) {
-    // Создаем UDP сокет
+    // 1) Создаем UDP сокет
     m_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+    // AF_INET — IPv4 (адрес 32 бита: 192.168.1.10) какой тип адресов будет использовать сокет
+    // SOCK_DGRAM - UDP-сокет тип сокета
+    // 0 - протокол если SOCK_DGRAM, ядро автоматически использует протокол UDP.
+    // 0 - ядро выберет подходящий протокол по умолчанию
     if (m_sock < 0) {
         perror("socket");
         return false;
     }
+    // в результате m_sock - это идентификатор сокета т.е. дескриптор, ассоциированный с UDP-сокетом
 
-    // Позволяем повторно использовать порт (полезно при перезапуске приложения)
+    // 2) Позволяем повторно использовать порт (полезно при перезапуске приложения)
+    // setsockopt - системный вызов, который устанавливает опцию сокета.
+    // m_sock  — дескриптор UDP-сокета, который мы только что создали.
+    // SOL_SOCKET — уровень опции: означает, что опция относится к самому сокету (а не, например, к
+    // протоколу TCP). SO_REUSEADDR — опция, позволяющая повторно использовать адрес/порт. Для UDP
+    // (SNMP особенно) обязательная опция. &opt — указатель на значение (целое число). sizeof(opt) —
+    // размер этого значения. opt = 1 означает: включить опцию.
     int opt = 1;
     if (setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt");
@@ -27,13 +38,14 @@ bool SnmpAgent::bind(uint16_t port) {
         return false;
     }
 
-    // Привязываем сокет к порту
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(port);
-
+    // 3) Привязываем сокет к порту
+    struct sockaddr_in addr;                   // адрес куда принимаем пакеты
+    memset(&addr, 0, sizeof(addr));            // обнуляем
+    addr.sin_family = AF_INET;                 // тип адресов IPv4
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);  // принимать пакеты на всех локальных интерфейсах.
+    //  addr.sin_addr.s_addr = inet_addr("192.168.4.1");
+    addr.sin_port = htons(port);  // принимаем пакеты с порта port
+    // собственно привязываем сокет к порту адреса
     if (::bind(m_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind");
         ::close(m_sock);
@@ -41,7 +53,7 @@ bool SnmpAgent::bind(uint16_t port) {
         return false;
     }
 
-    m_running = true;
+    m_running = true;  // TODO: название флага не корректное
     printf("SnmpAgent successfully bound to UDP port %u\n", port);
     return true;
 }
@@ -59,12 +71,20 @@ void SnmpAgent::run() {
 
     while (m_running) {
         struct sockaddr_in clientAddr;
-        socklen_t clientLen = sizeof(clientAddr);
         memset(&clientAddr, 0, sizeof(clientAddr));
 
         // Блокирующее чтение UDP пакета
-        ssize_t received =
-            recvfrom(m_sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
+        socklen_t clientLen = sizeof(clientAddr);
+        // clang-format off
+        ssize_t received = recvfrom(
+            m_sock, 
+            buffer, 
+            sizeof(buffer), 
+            0, 
+            (struct sockaddr*)&clientAddr, 
+            &clientLen
+        );
+        // clang-format on
 
         if (!m_running) {
             break;  // нас остановили извне
