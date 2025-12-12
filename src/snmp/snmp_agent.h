@@ -2,8 +2,8 @@
 #define SNMP_AGENT_H
 
 #include <netinet/in.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "snmp_codec.h"
 #include "ups_data_store.h"

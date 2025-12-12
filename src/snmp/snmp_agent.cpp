@@ -1,10 +1,12 @@
 #include "snmp_agent.h"
 
-#include <arpa/inet.h>  // htons(), inet_ntoa()
-#include <stdio.h>
-#include <string.h>
+#include <arpa/inet.h>   // htons(), ntohs(), inet_ntoa()
+#include <poll.h>        // poll(), struct pollfd
 #include <sys/socket.h>  // socket(), bind(), recvfrom(), sendto()
 #include <unistd.h>      // close()
+
+#include <cerrno>   // errno, EINTR
+#include <cstdio>   // printf(), perror()
 
 using namespace snmp;
 
@@ -45,8 +47,7 @@ bool SnmpAgent::bind(uint16_t port) {
     }
 
     // 3) Привязываем сокет к порту
-    struct sockaddr_in addr;                   // адрес куда принимаем пакеты
-    memset(&addr, 0, sizeof(addr));            // обнуляем
+    struct sockaddr_in addr{};                   // адрес куда принимаем пакеты
     addr.sin_family = AF_INET;                 // тип адресов IPv4
     addr.sin_addr.s_addr = htonl(INADDR_ANY);  // принимать пакеты на всех локальных интерфейсах.
     //  addr.sin_addr.s_addr = inet_addr("192.168.4.1");
@@ -85,8 +86,32 @@ bool SnmpAgent::run() {
     uint8_t buffer[4096];
 
     while (!m_stopRequested) {
-        struct sockaddr_in clientAddr;
-        memset(&clientAddr, 0, sizeof(clientAddr));
+        struct pollfd pfd;
+        pfd.fd = m_sock;
+        pfd.events = POLLIN;
+        pfd.revents = 0;
+
+        // Таймаут 500 мс
+        int rc = ::poll(&pfd, 1, 500);
+
+        if (rc < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            perror("poll");
+            break;
+        }
+
+        if (rc == 0) {
+            // timeout — просто проверяем stopRequested
+            continue;
+        }
+
+        if (!(pfd.revents & POLLIN)) {
+            continue;
+        }
+
+        struct sockaddr_in clientAddr{};
 
         // Чтение UDP пакета
         socklen_t clientLen = sizeof(clientAddr);
@@ -103,7 +128,7 @@ bool SnmpAgent::run() {
 
         // ---- обработка ошибок recvfrom ----
         if (received < 0) {
-            // Штатная остановка агента (stop() закрыл сокет)
+            // Остановка по запросу или прерывание
             if (m_stopRequested) {
                 break;
             }
@@ -126,18 +151,15 @@ bool SnmpAgent::run() {
         processSnmpPacket(buffer, (size_t)received, clientAddr, clientLen);
     }
 
+    // Останавливаемся и закрываем сокет
     m_running = false;
+    ::close(m_sock);
+    m_sock = -1;
     printf("SnmpAgent stopped\n");
     return true;
 }
 
-void SnmpAgent::stop() {
-    m_stopRequested = true;
-    if (m_sock >= 0) {
-        ::close(m_sock);
-        m_sock = -1;
-    }
-}
+void SnmpAgent::stop() { m_stopRequested = true; }
 
 void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
