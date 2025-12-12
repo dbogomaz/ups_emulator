@@ -2,8 +2,8 @@
 #define SNMP_AGENT_H
 
 #include <netinet/in.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "snmp_codec.h"
 #include "ups_data_store.h"
@@ -15,30 +15,34 @@ public:
     // Инициализация UDP сокета
     bool bind(uint16_t port = 161);
 
-    // Основной цикл обработки (блокирующий)
-    void run();
+    // Основной цикл обработки
+    bool run();
+
+    // агент запущен
+    bool isRunning() const;
 
     // Остановка агента
     void stop();
 
 private:
-    // Синхронная обработка запроса (версия v1)
-    void processPacketSync(const uint8_t* data,
+    // Обработка пакета
+    void processSnmpPacket(const uint8_t* data,
                            size_t size,
                            const sockaddr_in& clientAddr,
                            socklen_t clientLen);
 
     // Отправка ответа клиенту
-    bool sendResponse(const uint8_t* data,
-                      size_t size,
-                      const sockaddr_in& clientAddr,
-                      socklen_t clientLen);
+    bool sendSnmpResponse(const uint8_t* data,
+                          size_t size,
+                          const sockaddr_in& clientAddr,
+                          socklen_t clientLen);
 
 private:
-    int m_sock{-1};
-    bool m_running{false};
+    int m_sock{ -1 };
+    bool m_running{ false };        // run() сейчас выполняется
+    bool m_stopRequested{ false };  // запрошена остановка
 
-    UpsDataStore* m_store{nullptr};
+    UpsDataStore* m_store{ nullptr };
     snmp::SnmpCodec m_codec{};
 };
 

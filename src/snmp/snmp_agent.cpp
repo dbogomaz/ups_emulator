@@ -1,24 +1,43 @@
 #include "snmp_agent.h"
 
-#include <arpa/inet.h>  // htons(), inet_ntoa()
-#include <stdio.h>
-#include <string.h>
+#include <arpa/inet.h>   // htons(), ntohs(), inet_ntoa()
+#include <poll.h>        // poll(), struct pollfd
 #include <sys/socket.h>  // socket(), bind(), recvfrom(), sendto()
 #include <unistd.h>      // close()
+
+#include <cerrno>  // errno, EINTR
+#include <cstdio>  // printf(), perror()
 
 using namespace snmp;
 
 SnmpAgent::SnmpAgent(UpsDataStore* store) : m_store(store) {}
 
 bool SnmpAgent::bind(uint16_t port) {
-    // Создаем UDP сокет
+    // Защита от повтроного вызова
+    if (m_sock >= 0) {
+        printf("SnmpAgent::bind(): already bound\n");
+        return false;
+    }
+
+    // 1) Создаем UDP сокет
     m_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+    // AF_INET — IPv4 (адрес 32 бита: 192.168.1.10) какой тип адресов будет использовать сокет
+    // SOCK_DGRAM - UDP-сокет тип сокета
+    // 0 - протокол если SOCK_DGRAM, ядро автоматически использует протокол UDP.
+    // 0 - ядро выберет подходящий протокол по умолчанию
     if (m_sock < 0) {
         perror("socket");
         return false;
     }
+    // в результате m_sock - это идентификатор сокета т.е. дескриптор, ассоциированный с UDP-сокетом
 
-    // Позволяем повторно использовать порт (полезно при перезапуске приложения)
+    // 2) Позволяем повторно использовать порт (полезно при перезапуске приложения)
+    // setsockopt - системный вызов, который устанавливает опцию сокета.
+    // m_sock  — дескриптор UDP-сокета, который мы только что создали.
+    // SOL_SOCKET — уровень опции: означает, что опция относится к самому сокету (а не, например, к
+    // протоколу TCP). SO_REUSEADDR — опция, позволяющая повторно использовать адрес/порт. Для UDP
+    // (SNMP особенно) обязательная опция. &opt — указатель на значение (целое число). sizeof(opt) —
+    // размер этого значения. opt = 1 означает: включить опцию.
     int opt = 1;
     if (setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt");
@@ -27,13 +46,13 @@ bool SnmpAgent::bind(uint16_t port) {
         return false;
     }
 
-    // Привязываем сокет к порту
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(port);
-
+    // 3) Привязываем сокет к порту
+    struct sockaddr_in addr{};                 // адрес куда принимаем пакеты
+    addr.sin_family = AF_INET;                 // тип адресов IPv4
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);  // принимать пакеты на всех локальных интерфейсах.
+    //  addr.sin_addr.s_addr = inet_addr("192.168.4.1");
+    addr.sin_port = htons(port);  // принимаем пакеты с порта port
+    // собственно привязываем сокет к порту адреса
     if (::bind(m_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind");
         ::close(m_sock);
@@ -41,38 +60,90 @@ bool SnmpAgent::bind(uint16_t port) {
         return false;
     }
 
-    m_running = true;
     printf("SnmpAgent successfully bound to UDP port %u\n", port);
     return true;
 }
 
-void SnmpAgent::run() {
+bool SnmpAgent::run() {
+    // Проверка готовности
     if (m_sock < 0) {
         printf("SnmpAgent::run(): socket not initialized\n");
-        return;
+        return false;
     }
+
+    // Защита от повторного запуска
+    if (m_running) {
+        printf("SnmpAgent::run(): already running\n");
+        return false;
+    }
+
+    m_stopRequested = false;
+    m_running = true;
 
     printf("SnmpAgent running...\n");
 
     // Максимальный размер SNMP пакета - хватит 4096
     uint8_t buffer[4096];
 
-    while (m_running) {
-        struct sockaddr_in clientAddr;
-        socklen_t clientLen = sizeof(clientAddr);
-        memset(&clientAddr, 0, sizeof(clientAddr));
+    while (!m_stopRequested) {
+        struct pollfd pfd;
+        pfd.fd = m_sock;
+        pfd.events = POLLIN;  // ожидаем готовность сокета к чтению
+        pfd.revents = 0;      // заполняется ядром, обнулим перед этим
+        // revents битовое поле POLLIN — можно читать
+        //                      POLLERR   — ошибка
+        //                      POLLHUP   — hangup
+        //                      POLLNVAL  — fd невалиден
 
-        // Блокирующее чтение UDP пакета
-        ssize_t received =
-            recvfrom(m_sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
+        // Таймаут 500 мс
+        int rc = ::poll(&pfd, 1, 500);
 
-        if (!m_running) {
-            break;  // нас остановили извне
+        if (rc < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            perror("poll");
+            break;
         }
 
-        if (received < 0) {
-            perror("recvfrom");
+        // за timeout событий не было — просто проверяем stopRequested
+        if (rc == 0) {
             continue;
+        }
+
+        // если сокет не готов к чтению — не читаем
+        if (!(pfd.revents & POLLIN)) {
+            continue;
+        }
+
+        struct sockaddr_in clientAddr{};
+
+        // Чтение UDP пакета
+        socklen_t clientLen = sizeof(clientAddr);
+        // clang-format off
+        ssize_t received = recvfrom(
+            m_sock, 
+            buffer, 
+            sizeof(buffer), 
+            0, // блокирующий recvfrom (не блокируется из-за предварительного poll)
+            (struct sockaddr*)&clientAddr, 
+            &clientLen
+        );
+        // clang-format on
+
+        // ---- обработка ошибок recvfrom ----
+        if (received < 0) {
+            // Остановка по запросу или прерывание
+            if (m_stopRequested) {
+                break;
+            }
+            // Прерывание сигналом — не ошибка
+            if (errno == EINTR) {
+                continue;
+            }
+            // Реальная ошибка сокета
+            perror("recvfrom");
+            break;
         }
 
         // Отладочная печать (можно убрать позже)
@@ -81,23 +152,21 @@ void SnmpAgent::run() {
                inet_ntoa(clientAddr.sin_addr),
                ntohs(clientAddr.sin_port));
 
-        // Пока работаем в синхронном режиме
-        processPacketSync(buffer, (size_t)received, clientAddr, clientLen);
+        // Обработка пакета
+        processSnmpPacket(buffer, (size_t)received, clientAddr, clientLen);
     }
 
-    printf("SnmpAgent stopped\n");
-}
-
-void SnmpAgent::stop() {
+    // Останавливаемся и закрываем сокет
     m_running = false;
-
-    if (m_sock >= 0) {
-        ::close(m_sock);
-        m_sock = -1;
-    }
+    ::close(m_sock);
+    m_sock = -1;
+    printf("SnmpAgent stopped\n");
+    return true;
 }
 
-void SnmpAgent::processPacketSync(const uint8_t* data,
+void SnmpAgent::stop() { m_stopRequested = true; }
+
+void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
                                   const sockaddr_in& clientAddr,
                                   socklen_t clientLen) {
@@ -118,13 +187,13 @@ void SnmpAgent::processPacketSync(const uint8_t* data,
     }
 
     // 3. Отправка клиенту
-    sendResponse(response.data(), response.size(), clientAddr, clientLen);
+    sendSnmpResponse(response.data(), response.size(), clientAddr, clientLen);
 }
 
-bool SnmpAgent::sendResponse(const uint8_t* data,
-                             size_t size,
-                             const sockaddr_in& clientAddr,
-                             socklen_t clientLen) {
+bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
+                                 size_t size,
+                                 const sockaddr_in& clientAddr,
+                                 socklen_t clientLen) {
     ssize_t sent = sendto(m_sock, data, size, 0, (const struct sockaddr*)&clientAddr, clientLen);
 
     if (sent < 0) {
@@ -139,3 +208,5 @@ bool SnmpAgent::sendResponse(const uint8_t* data,
 
     return true;
 }
+
+bool SnmpAgent::isRunning() const { return m_running; }

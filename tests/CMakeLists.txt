@@ -40,6 +40,10 @@ add_ups_test(snmp_ber_writer_test
     unit/snmp_codec/test_ber_writer.cpp
 )
 
+add_ups_test(snmp_agent_test
+    unit/snmp/test_snmp_agent_lifecycle.cpp
+)
+
 add_subdirectory(googletest)
 
 if (BUILD_COVERAGE)
