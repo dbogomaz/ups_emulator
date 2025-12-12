@@ -149,10 +149,10 @@ void SnmpAgent::processSnmpPacket(const uint8_t* data,
     }
 
     // 3. Отправка клиенту
-    sendResponse(response.data(), response.size(), clientAddr, clientLen);
+    sendSnmpResponse(response.data(), response.size(), clientAddr, clientLen);
 }
 
-bool SnmpAgent::sendResponse(const uint8_t* data,
+bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
                              size_t size,
                              const sockaddr_in& clientAddr,
                              socklen_t clientLen) {

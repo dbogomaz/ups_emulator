@@ -15,7 +15,7 @@ public:
     // Инициализация UDP сокета
     bool bind(uint16_t port = 161);
 
-    // Основной цикл обработки (блокирующий)
+    // Основной цикл обработки
     void run();
 
     // Остановка агента
@@ -29,7 +29,7 @@ private:
                            socklen_t clientLen);
 
     // Отправка ответа клиенту
-    bool sendResponse(const uint8_t* data,
+    bool sendSnmpResponse(const uint8_t* data,
                       size_t size,
                       const sockaddr_in& clientAddr,
                       socklen_t clientLen);
