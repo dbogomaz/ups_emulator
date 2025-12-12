@@ -11,6 +11,12 @@ using namespace snmp;
 SnmpAgent::SnmpAgent(UpsDataStore* store) : m_store(store) {}
 
 bool SnmpAgent::bind(uint16_t port) {
+    // Защита от повтроного вызова
+    if (m_sock >= 0) {
+        printf("SnmpAgent::bind(): already bound\n");
+        return false;
+    }
+
     // 1) Создаем UDP сокет
     m_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
     // AF_INET — IPv4 (адрес 32 бита: 192.168.1.10) какой тип адресов будет использовать сокет
@@ -53,27 +59,36 @@ bool SnmpAgent::bind(uint16_t port) {
         return false;
     }
 
-    m_running = true;  // TODO: название флага не корректное
     printf("SnmpAgent successfully bound to UDP port %u\n", port);
     return true;
 }
 
-void SnmpAgent::run() {
+bool SnmpAgent::run() {
+    // Проверка готовности
     if (m_sock < 0) {
         printf("SnmpAgent::run(): socket not initialized\n");
-        return;
+        return false;
     }
+
+    // Защита от повторного запуска
+    if (m_running) {
+        printf("SnmpAgent::run(): already running\n");
+        return false;
+    }
+
+    m_stopRequested = false;
+    m_running = true;
 
     printf("SnmpAgent running...\n");
 
     // Максимальный размер SNMP пакета - хватит 4096
     uint8_t buffer[4096];
 
-    while (m_running) {
+    while (!m_stopRequested) {
         struct sockaddr_in clientAddr;
         memset(&clientAddr, 0, sizeof(clientAddr));
 
-        // Блокирующее чтение UDP пакета
+        // Чтение UDP пакета
         socklen_t clientLen = sizeof(clientAddr);
         // clang-format off
         ssize_t received = recvfrom(
@@ -86,15 +101,10 @@ void SnmpAgent::run() {
         );
         // clang-format on
 
-        if (received < 0) {
-            perror("recvfrom");
-            continue;
-        }
-
         // ---- обработка ошибок recvfrom ----
         if (received < 0) {
             // Штатная остановка агента (stop() закрыл сокет)
-            if (!m_running) {
+            if (m_stopRequested) {
                 break;
             }
             // Прерывание сигналом — не ошибка
@@ -116,12 +126,13 @@ void SnmpAgent::run() {
         processSnmpPacket(buffer, (size_t)received, clientAddr, clientLen);
     }
 
+    m_running = false;
     printf("SnmpAgent stopped\n");
+    return true;
 }
 
 void SnmpAgent::stop() {
-    m_running = false;
-
+    m_stopRequested = true;
     if (m_sock >= 0) {
         ::close(m_sock);
         m_sock = -1;
@@ -153,9 +164,9 @@ void SnmpAgent::processSnmpPacket(const uint8_t* data,
 }
 
 bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
-                             size_t size,
-                             const sockaddr_in& clientAddr,
-                             socklen_t clientLen) {
+                                 size_t size,
+                                 const sockaddr_in& clientAddr,
+                                 socklen_t clientLen) {
     ssize_t sent = sendto(m_sock, data, size, 0, (const struct sockaddr*)&clientAddr, clientLen);
 
     if (sent < 0) {
@@ -170,3 +181,5 @@ bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
 
     return true;
 }
+
+bool SnmpAgent::isRunning() const { return m_running; }

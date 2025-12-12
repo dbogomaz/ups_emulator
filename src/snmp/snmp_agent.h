@@ -16,7 +16,10 @@ public:
     bool bind(uint16_t port = 161);
 
     // Основной цикл обработки
-    void run();
+    bool run();
+
+    // агент запущен
+    bool isRunning() const;
 
     // Остановка агента
     void stop();
@@ -30,15 +33,16 @@ private:
 
     // Отправка ответа клиенту
     bool sendSnmpResponse(const uint8_t* data,
-                      size_t size,
-                      const sockaddr_in& clientAddr,
-                      socklen_t clientLen);
+                          size_t size,
+                          const sockaddr_in& clientAddr,
+                          socklen_t clientLen);
 
 private:
-    int m_sock{-1};
-    bool m_running{false};
+    int m_sock{ -1 };
+    bool m_running{ false };        // run() сейчас выполняется
+    bool m_stopRequested{ false };  // запрошена остановка
 
-    UpsDataStore* m_store{nullptr};
+    UpsDataStore* m_store{ nullptr };
     snmp::SnmpCodec m_codec{};
 };
 
