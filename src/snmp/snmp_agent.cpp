@@ -80,19 +80,30 @@ void SnmpAgent::run() {
             m_sock, 
             buffer, 
             sizeof(buffer), 
-            0, 
+            0, // флаг приема 0-вызов блокируется пока не придет пакет
             (struct sockaddr*)&clientAddr, 
             &clientLen
         );
         // clang-format on
 
-        if (!m_running) {
-            break;  // нас остановили извне
-        }
-
         if (received < 0) {
             perror("recvfrom");
             continue;
+        }
+
+        // ---- обработка ошибок recvfrom ----
+        if (received < 0) {
+            // Штатная остановка агента (stop() закрыл сокет)
+            if (!m_running) {
+                break;
+            }
+            // Прерывание сигналом — не ошибка
+            if (errno == EINTR) {
+                continue;
+            }
+            // Реальная ошибка сокета
+            perror("recvfrom");
+            break;
         }
 
         // Отладочная печать (можно убрать позже)
