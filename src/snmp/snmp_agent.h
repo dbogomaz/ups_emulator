@@ -22,8 +22,8 @@ public:
     void stop();
 
 private:
-    // Синхронная обработка запроса (версия v1)
-    void processPacketSync(const uint8_t* data,
+    // Обработка пакета
+    void processSnmpPacket(const uint8_t* data,
                            size_t size,
                            const sockaddr_in& clientAddr,
                            socklen_t clientLen);

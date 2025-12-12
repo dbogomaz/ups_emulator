@@ -112,8 +112,8 @@ void SnmpAgent::run() {
                inet_ntoa(clientAddr.sin_addr),
                ntohs(clientAddr.sin_port));
 
-        // Пока работаем в синхронном режиме
-        processPacketSync(buffer, (size_t)received, clientAddr, clientLen);
+        // Обработка пакета
+        processSnmpPacket(buffer, (size_t)received, clientAddr, clientLen);
     }
 
     printf("SnmpAgent stopped\n");
@@ -128,7 +128,7 @@ void SnmpAgent::stop() {
     }
 }
 
-void SnmpAgent::processPacketSync(const uint8_t* data,
+void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
                                   const sockaddr_in& clientAddr,
                                   socklen_t clientLen) {
