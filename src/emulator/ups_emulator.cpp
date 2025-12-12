@@ -110,14 +110,7 @@ bool UpsEmulator::bind(int port) {
 
 bool UpsEmulator::stop() {
     m_lastError.clear();
-
     m_agent.stop();
-    // TODO: возможно нужно возвращать bool вместо void SnmpAgent::stop()
-    // if (!m_agent.stop()) {
-    //     m_lastError = "Failed to stop SNMP agent.";
-    //     return false;
-    // }
-
     return true;
 }
 
