@@ -5,8 +5,8 @@
 #include <sys/socket.h>  // socket(), bind(), recvfrom(), sendto()
 #include <unistd.h>      // close()
 
-#include <cerrno>   // errno, EINTR
-#include <cstdio>   // printf(), perror()
+#include <cerrno>  // errno, EINTR
+#include <cstdio>  // printf(), perror()
 
 using namespace snmp;
 
@@ -47,7 +47,7 @@ bool SnmpAgent::bind(uint16_t port) {
     }
 
     // 3) Привязываем сокет к порту
-    struct sockaddr_in addr{};                   // адрес куда принимаем пакеты
+    struct sockaddr_in addr{};                 // адрес куда принимаем пакеты
     addr.sin_family = AF_INET;                 // тип адресов IPv4
     addr.sin_addr.s_addr = htonl(INADDR_ANY);  // принимать пакеты на всех локальных интерфейсах.
     //  addr.sin_addr.s_addr = inet_addr("192.168.4.1");
@@ -88,8 +88,12 @@ bool SnmpAgent::run() {
     while (!m_stopRequested) {
         struct pollfd pfd;
         pfd.fd = m_sock;
-        pfd.events = POLLIN;
-        pfd.revents = 0;
+        pfd.events = POLLIN;  // ожидаем готовность сокета к чтению
+        pfd.revents = 0;      // заполняется ядром, обнулим перед этим
+        // revents битовое поле POLLIN — можно читать
+        //                      POLLERR   — ошибка
+        //                      POLLHUP   — hangup
+        //                      POLLNVAL  — fd невалиден
 
         // Таймаут 500 мс
         int rc = ::poll(&pfd, 1, 500);
@@ -102,11 +106,12 @@ bool SnmpAgent::run() {
             break;
         }
 
+        // за timeout событий не было — просто проверяем stopRequested
         if (rc == 0) {
-            // timeout — просто проверяем stopRequested
             continue;
         }
 
+        // если сокет не готов к чтению — не читаем
         if (!(pfd.revents & POLLIN)) {
             continue;
         }
@@ -120,7 +125,7 @@ bool SnmpAgent::run() {
             m_sock, 
             buffer, 
             sizeof(buffer), 
-            0, // флаг приема 0-вызов блокируется пока не придет пакет
+            0, // блокирующий recvfrom (не блокируется из-за предварительного poll)
             (struct sockaddr*)&clientAddr, 
             &clientLen
         );
