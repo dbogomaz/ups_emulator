@@ -34,12 +34,10 @@ TEST(SnmpAgentTest, BindRunStopLifecycle) {
     EXPECT_FALSE(agent.isRunning());
 }
 
-// TEST(SnmpAgentTest, DoubleBindFails)
-// {
-//     DummyUpsDataStore store;
-//     SnmpAgent agent(&store);
-
-//     ASSERT_TRUE(agent.bind(1162));
-//     EXPECT_FALSE(agent.bind(1162));
-// }
-
+// Проверка защиты от повторного bind()
+TEST(SnmpAgentTest, DoubleBindFails) {
+    DummyUpsDataStore store;
+    SnmpAgent agent(&store);
+    ASSERT_TRUE(agent.bind(1162));
+    EXPECT_FALSE(agent.bind(1162));
+}
