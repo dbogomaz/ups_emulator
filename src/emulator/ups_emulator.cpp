@@ -19,6 +19,12 @@ UpsEmulator::UpsEmulator(const std::string& configPath)
 
 bool UpsEmulator::selectModel(const IniSectionName& name) {
     m_lastError.clear();
+    
+    // Проверяем запущен или нет
+    if (m_agent.isRunning()) {
+        m_lastError = "Cannot change model while agent is running. Call stop() first.";
+        return false;
+    }
 
     // Проверяем, присутствует ли модель в списке доступных
     if (std::find(m_availableModels.begin(), m_availableModels.end(), name) ==
@@ -26,12 +32,6 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
         m_lastError = "Model not found: " + name;
         return false;
     }
-
-    // TODO: Возможно нужно сначала оставновить
-    // if (m_agent.isRunning()) {
-    //     m_lastError = "Cannot change model while agent is running. Call stop() first.";
-    //     return false;
-    // }
 
     // Загружаем модель
     if (!m_config.load(m_configPath, name)) {
