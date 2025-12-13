@@ -31,13 +31,6 @@ int main() {
         return 1;
     }
 
-    // Привязываем SNMP агент к порту 161
-    if (!emulator.bind(161)) {
-        std::cerr << "Failed to bind SNMP agent: "
-                  << emulator.lastError() << "\n";
-        return 1;
-    }
-
     // Основной цикл
     emulator.run();
 

@@ -20,9 +20,9 @@ public:
     bool selectModel(const IniSectionName& name);
 
     // Управление SNMP-агентом
-    bool bind(int port);  // открыть сокет, привязать к порту
-    bool stop();          // закрыть сокет, остановить
-    void run();           // основной цикл
+    void run();
+    bool stop();
+
 
     bool ok() const;
     const ErrorMessage& lastError() const;

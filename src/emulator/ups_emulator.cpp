@@ -125,24 +125,32 @@ bool UpsEmulator::fillDefaults() {
     return true;
 }
 
-bool UpsEmulator::bind(int port) {
-    m_lastError.clear();
-
-    if (!m_agent.bind(port)) {
-        m_lastError = "Failed to bind SNMP agent to port " + std::to_string(port);
-        return false;
-    }
-
-    return true;
-}
-
 bool UpsEmulator::stop() {
     m_lastError.clear();
     m_agent.stop();
     return true;
 }
 
-void UpsEmulator::run() { m_agent.run(); }
+void UpsEmulator::run() {
+    m_lastError.clear();
+
+    // 1. Проверка, что модель выбрана
+    if (m_currentModel.empty()) {
+        m_lastError = "UPS model is not selected.";
+        return;
+    }
+
+    // 2. Привязка SNMP-агента к порту
+    constexpr int SNMP_PORT = 161;
+    if (!m_agent.bind(SNMP_PORT)) {
+        m_lastError = "Failed to bind SNMP agent to port " +
+                      std::to_string(SNMP_PORT);
+        return;
+    }
+
+    // 3. Запуск агента
+    m_agent.run();
+}
 
 bool UpsEmulator::ok() const { return m_lastError.empty(); }
 
