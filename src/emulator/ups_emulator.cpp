@@ -19,7 +19,7 @@ UpsEmulator::UpsEmulator(const std::string& configPath)
 
 bool UpsEmulator::selectModel(const IniSectionName& name) {
     m_lastError.clear();
-    
+
     // Проверяем запущен или нет
     if (m_agent.isRunning()) {
         m_lastError = "Cannot change model while agent is running. Call stop() first.";
@@ -59,39 +59,67 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
 
 bool UpsEmulator::fillDefaults() {
     const UpsOids& oids = m_config.oids();
+    ErrorMessage err;
 
     // ---- modelName ----
-    m_store.set(oids.modelNameOID, m_config.modelName());
+    if (!m_store.set(oids.modelNameOID, m_config.modelName(), &err)) {
+        m_lastError = "modelName: " + err;
+        return false;
+    }
 
     // Входные параметры InputStatus
-    m_store.set(oids.inputVoltageOID, "230");
-    m_store.set(oids.inputFreqOID, "500");
+    if (!m_store.set(oids.inputVoltageOID, "230", &err)) {
+        m_lastError = "inputVoltage: " + err;
+        return false;
+    }
+    if (!m_store.set(oids.inputFreqOID, "500", &err)) {
+        m_lastError = "inputFrequency: " + err;
+        return false;
+    }
 
     // Выходные параметры OutputStatus
-    m_store.set(oids.outputVoltageOID, "220");
+    if (!m_store.set(oids.outputVoltageOID, "220", &err)) {
+        m_lastError = "outputVoltage: " + err;
+        return false;
+    }
 
     // Состояние батареи BatteryStatus
-    m_store.set(oids.batteryTempOID, "25");
-    m_store.set(oids.chargeRemainingOID, "100");
+    if (!m_store.set(oids.batteryTempOID, "25", &err)) {
+        m_lastError = "batteryTemperature: " + err;
+        return false;
+    }
+    if (!m_store.set(oids.chargeRemainingOID, "100", &err)) {
+        m_lastError = "chargeRemaining: " + err;
+        return false;
+    }
+
     // batteryStatus: первый элемент набора
-    if (!m_config.definedFields().batteryStatusSet.nameToValue.empty()) {
-        const std::string& first =
-            m_config.definedFields().batteryStatusSet.nameToValue.begin()->first;
-        m_store.set(oids.batteryStatusOID, first);
-    } else {
+    if (m_config.definedFields().batteryStatusSet.nameToValue.empty()) {
         m_lastError = "batteryStatusValues set is empty.";
         return false;
+    }
+    {
+        const std::string& first =
+            m_config.definedFields().batteryStatusSet.nameToValue.begin()->first;
+        if (!m_store.set(oids.batteryStatusOID, first, &err)) {
+            m_lastError = "batteryStatus: " + err;
+            return false;
+        }
     }
 
     // Состояние выхода OutputStatus
     // outputStatus: первый элемент набора
-    if (!m_config.definedFields().outputStatusSet.nameToValue.empty()) {
-        const std::string& first =
-            m_config.definedFields().outputStatusSet.nameToValue.begin()->first;
-        m_store.set(oids.outputStatusOID, first);
-    } else {
+    if (m_config.definedFields().outputStatusSet.nameToValue.empty()) {
         m_lastError = "outputStatusValues set is empty.";
         return false;
+    }
+    {
+        const std::string& first =
+            m_config.definedFields().outputStatusSet.nameToValue.begin()->first;
+        if (!m_store.set(oids.outputStatusOID, first, &err)) {
+            m_lastError = "outputStatus: " + err;
+            return false;
+        }
     }
 
     return true;
