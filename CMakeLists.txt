@@ -85,6 +85,10 @@ if(1) # MAIN APPLICATION BLOCK
     endif()
 endif()
 
+if(1) # GUI APPLICATION BLOCK
+    add_subdirectory(gui)
+endif()
+
 if(1) # ACTIVATE BUILD TESTS BLOCK
     if (BUILD_TESTING)
         enable_testing()
