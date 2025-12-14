@@ -1,9 +1,11 @@
 #include "main_window.h"
 
+#include <QAction>
+#include <QActionGroup>
+#include <QDebug>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("UPS Emulator");
@@ -110,6 +112,21 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         main_Layout->addLayout(parameters_Layout);
         main_Layout->addLayout(buttons_Layout);
     }
+
+    // ===== MenuBar =====
+
+    // --- File ---
+    m_fileMenu = menuBar()->addMenu("File");
+    m_exitAction = new QAction("Exit", this);
+    m_fileMenu->addAction(m_exitAction);
+    connect(m_exitAction, &QAction::triggered, this, &QWidget::close);
+
+    // --- Model ---
+    m_modelMenu = menuBar()->addMenu("Model");
+    m_modelActionGroup = new QActionGroup(this);
+    m_modelActionGroup->setExclusive(true);
+
+    menuBar()->setNativeMenuBar(false);  // временно
 
     connect(m_exit_PushButton, &QPushButton::clicked, this, &QWidget::close);
 }
