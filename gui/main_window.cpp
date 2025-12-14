@@ -1,7 +1,115 @@
 #include "main_window.h"
 
-MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent) {
+#include <QFormLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QVBoxLayout>
+
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("UPS Emulator");
-    resize(800, 600);
+    resize(600, 200);
+
+    QWidget* central = new QWidget(this);
+    setCentralWidget(central);
+
+    m_inputVoltage_SpinBox = new QSpinBox(central);
+    m_inputVoltage_SpinBox->setMinimum(0);
+    m_inputVoltage_SpinBox->setMaximum(300);
+    m_inputVoltage_SpinBox->setValue(230);
+
+    m_inputFreq_SpinBox = new QSpinBox(central);
+    m_inputFreq_SpinBox->setMinimum(0);
+    m_inputFreq_SpinBox->setMaximum(999);
+    m_inputFreq_SpinBox->setValue(500);
+
+    m_chargeRemaining_SpinBox = new QSpinBox(central);
+    m_chargeRemaining_SpinBox->setMinimum(0);
+    m_chargeRemaining_SpinBox->setMaximum(100);
+    m_chargeRemaining_SpinBox->setValue(80);
+
+    m_batteryTemp_SpinBox = new QSpinBox(central);
+    m_batteryTemp_SpinBox->setMinimum(0);
+    m_batteryTemp_SpinBox->setMaximum(100);
+    m_batteryTemp_SpinBox->setValue(30);
+
+    m_batteryStatus_ComboBox = new QComboBox(central);
+
+    m_outputVoltage_SpinBox = new QSpinBox(central);
+    m_outputVoltage_SpinBox->setMinimum(0);
+    m_outputVoltage_SpinBox->setMaximum(300);
+    m_outputVoltage_SpinBox->setValue(230);
+
+    m_run_PushButton = new QPushButton("Run", central);
+    m_stop_PushButton = new QPushButton("Stop", central);
+    m_exit_PushButton = new QPushButton("Exit", central);
+
+    m_outputStatus_ComboBox = new QComboBox(central);
+
+    QVBoxLayout* main_Layout = new QVBoxLayout(central);
+    {
+        // виджеты с параметрами
+        QHBoxLayout* parameters_Layout = new QHBoxLayout;
+        {
+            QVBoxLayout* inputStatus_Layout = new QVBoxLayout;
+            {
+                QLabel* inputStatus_Label = new QLabel("InputStatus");
+                QFormLayout* inputStatus_FormLayout = new QFormLayout;
+                {
+                    inputStatus_FormLayout->addRow("inputVoltage", m_inputVoltage_SpinBox);
+                    inputStatus_FormLayout->addRow("inputFreq", m_inputFreq_SpinBox);
+                }
+
+                inputStatus_Layout->addWidget(inputStatus_Label);
+                inputStatus_Layout->addLayout(inputStatus_FormLayout);
+                inputStatus_Layout->addStretch();
+            }
+
+            QVBoxLayout* batteryStatus_Layout = new QVBoxLayout;
+            {
+                QLabel* batteryStatus_Label = new QLabel("BatteryStatus");
+                QFormLayout* batteryStatus_FormLayout = new QFormLayout;
+                {
+                    batteryStatus_FormLayout->addRow("chargeRemaining", m_chargeRemaining_SpinBox);
+                    batteryStatus_FormLayout->addRow("batteryTemp", m_batteryTemp_SpinBox);
+                    batteryStatus_FormLayout->addRow("batteryStatus", m_batteryStatus_ComboBox);
+                }
+
+                batteryStatus_Layout->addWidget(batteryStatus_Label);
+                batteryStatus_Layout->addLayout(batteryStatus_FormLayout);
+                batteryStatus_Layout->addStretch();
+            }
+
+            QVBoxLayout* outputStatus_Layout = new QVBoxLayout;
+            {
+                QLabel* outputStatus_Label = new QLabel("OutputStatus");
+                QFormLayout* outputStatus_FormLayout = new QFormLayout;
+                {
+                    outputStatus_FormLayout->addRow("outputVoltage", m_outputVoltage_SpinBox);
+                    outputStatus_FormLayout->addRow("outputStatus", m_outputStatus_ComboBox);
+                }
+
+                outputStatus_Layout->addWidget(outputStatus_Label);
+                outputStatus_Layout->addLayout(outputStatus_FormLayout);
+                outputStatus_Layout->addStretch();
+            }
+
+            parameters_Layout->addLayout(inputStatus_Layout);
+            parameters_Layout->addLayout(batteryStatus_Layout);
+            parameters_Layout->addLayout(outputStatus_Layout);
+        }
+
+        // кнопки
+        QHBoxLayout* buttons_Layout = new QHBoxLayout;
+        {
+            buttons_Layout->addStretch();
+            buttons_Layout->addWidget(m_run_PushButton);
+            buttons_Layout->addWidget(m_stop_PushButton);
+            buttons_Layout->addWidget(m_exit_PushButton);
+        }
+
+        main_Layout->addLayout(parameters_Layout);
+        main_Layout->addLayout(buttons_Layout);
+    }
+
+    connect(m_exit_PushButton, &QPushButton::clicked, this, &QWidget::close);
 }
