@@ -58,6 +58,7 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
         return false;
     }
 
+    printf("Model selected: %s\n", name.c_str());
     return true;
 }
 

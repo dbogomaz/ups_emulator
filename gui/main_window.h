@@ -46,6 +46,8 @@ private:
     bool m_isRunning{ false };
     void updateRunStateUi();
 
+    void modelSelected(QAction* action);
+
     void runPushButtonClicked();
     void stopPushButtonClicked();
 };

@@ -125,6 +125,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_emulator("confi
     m_modelMenu = menuBar()->addMenu("Model");
     m_modelActionGroup = new QActionGroup(this);
     m_modelActionGroup->setExclusive(true);
+    const auto models = m_emulator.availableModels();
+    for (const auto& name : models) {
+        QAction* action = new QAction(QString::fromStdString(name), this);
+        action->setCheckable(true);
+        m_modelActionGroup->addAction(action);
+        m_modelMenu->addAction(action);
+    }
+    connect(m_modelActionGroup, &QActionGroup::triggered, this, &MainWindow::modelSelected);
+    if (!models.empty()) {
+        m_emulator.selectModel(models.front());
+        m_modelActionGroup->actions().front()->setChecked(true);
+    }
 
     menuBar()->setNativeMenuBar(false);  // временно
 
@@ -142,12 +154,17 @@ void MainWindow::updateRunStateUi() {
     m_modelMenu->setEnabled(!running);
 }
 
+void MainWindow::modelSelected(QAction* action) {
+    if (m_emulator.isRunning()) {
+        return;
+    }
+    m_emulator.selectModel(action->text().toStdString());
+}
+
 void MainWindow::runPushButtonClicked() {
     if (m_emulator.isRunning()) {
         return;
     }
-
-    m_emulator.selectModel("APC");
     m_emulator.start();
     updateRunStateUi();
 }
