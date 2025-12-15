@@ -32,7 +32,7 @@ int main() {
     }
 
     // Основной цикл
-    emulator.run();
+    emulator.start();
 
     return 0;
 }

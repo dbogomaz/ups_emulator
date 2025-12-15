@@ -136,28 +136,23 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_emulator("confi
 }
 
 void MainWindow::updateRunStateUi() {
-    m_run_PushButton->setEnabled(!m_isRunning);
-    m_stop_PushButton->setEnabled(m_isRunning);
-    m_modelMenu->setEnabled(!m_isRunning);
+    const bool running = m_emulator.isRunning();
+    m_run_PushButton->setEnabled(!running);
+    m_stop_PushButton->setEnabled(running);
+    m_modelMenu->setEnabled(!running);
 }
 
 void MainWindow::runPushButtonClicked() {
-    if (m_isRunning) {
+    if (m_emulator.isRunning()) {
         return;
     }
 
-    m_emulator.selectModel("APC");  // временно жестко заданная модель
-    m_emulator.run();   // пока просто запуск
-    m_isRunning = true;
+    m_emulator.selectModel("APC");
+    m_emulator.start();
     updateRunStateUi();
 }
 
 void MainWindow::stopPushButtonClicked() {
-    if (!m_isRunning) {
-        return;
-    }
-
     m_emulator.stop();
-    m_isRunning = false;
     updateRunStateUi();
 }

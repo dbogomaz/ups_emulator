@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <thread>
+#include <atomic>
 
 #include "ini_section_reader.h"
 #include "snmp_agent.h"
@@ -13,16 +15,17 @@
 class UpsEmulator {
 public:
     explicit UpsEmulator(const std::string& configPath);
+    ~UpsEmulator();
 
     const std::vector<IniSectionName>& availableModels() const;
 
     // Выбор модели UPS
     bool selectModel(const IniSectionName& name);
 
-    // Управление SNMP-агентом
-    void run();
-    bool stop();
-
+    // Запуск эмулятора
+    bool start();
+    void stop();
+    bool isRunning() const;
 
     bool ok() const;
     const ErrorMessage& lastError() const;
@@ -37,6 +40,12 @@ private:
     SnmpAgent m_agent{nullptr};
 
     ErrorMessage m_lastError{};
+
+    std::thread m_thread;
+    std::atomic<bool> m_running{false};
+
+    // Основной цикл агента
+    void runAgent();
 
     bool fillDefaults();
 };

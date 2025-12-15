@@ -17,12 +17,16 @@ UpsEmulator::UpsEmulator(const std::string& configPath)
     m_availableModels = reader.sections();
 }
 
+UpsEmulator::~UpsEmulator() {
+    stop();
+}
+
 bool UpsEmulator::selectModel(const IniSectionName& name) {
     m_lastError.clear();
 
     // Проверяем запущен или нет
-    if (m_agent.isRunning()) {
-        m_lastError = "Cannot change model while agent is running. Call stop() first.";
+    if (m_running.load()) {
+        m_lastError = "Cannot change model while emulator is running. Call stop() first.";
         return false;
     }
 
@@ -125,19 +129,13 @@ bool UpsEmulator::fillDefaults() {
     return true;
 }
 
-bool UpsEmulator::stop() {
-    m_lastError.clear();
-    m_agent.stop();
-    return true;
-}
-
-void UpsEmulator::run() {
+bool UpsEmulator::start() {
     m_lastError.clear();
 
     // 1. Проверка, что модель выбрана
     if (m_currentModel.empty()) {
         m_lastError = "UPS model is not selected.";
-        return;
+        return false;
     }
 
     // 2. Привязка SNMP-агента к порту
@@ -145,11 +143,36 @@ void UpsEmulator::run() {
     if (!m_agent.bind(SNMP_PORT)) {
         m_lastError = "Failed to bind SNMP agent to port " +
                       std::to_string(SNMP_PORT);
-        return;
+        return false;
     }
 
     // 3. Запуск агента
+    if (m_running.load()) {
+        return false;
+    }
+    m_running.store(true);
+    m_thread = std::thread(&UpsEmulator::runAgent, this);
+    return true;
+}
+
+void UpsEmulator::stop() {
+    if (!m_running.load()) {
+        return;
+    }
+    m_agent.stop();
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+    m_running.store(false);
+}
+
+void UpsEmulator::runAgent() {
     m_agent.run();
+    m_running.store(false);
+}
+
+bool UpsEmulator::isRunning() const {
+    return m_running.load();
 }
 
 bool UpsEmulator::ok() const { return m_lastError.empty(); }
