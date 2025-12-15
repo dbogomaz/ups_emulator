@@ -183,3 +183,7 @@ const ErrorMessage& UpsEmulator::lastError() const { return m_lastError; }
 const std::vector<IniSectionName>& UpsEmulator::availableModels() const {
     return m_availableModels;
 }
+
+IniSectionName UpsEmulator::currentModel() const {
+    return m_currentModel;
+}

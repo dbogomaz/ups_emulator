@@ -21,7 +21,6 @@ public:
 private:
     UpsEmulator m_emulator;
 
-
     // InputStatus
     QSpinBox* m_inputVoltage_SpinBox{ nullptr };
     QSpinBox* m_inputFreq_SpinBox{ nullptr };
@@ -43,7 +42,6 @@ private:
     QAction* m_exitAction{ nullptr };
     QActionGroup* m_modelActionGroup{ nullptr };
 
-    bool m_isRunning{ false };
     void updateRunStateUi();
 
     void modelSelected(QAction* action);

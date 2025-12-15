@@ -134,8 +134,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_emulator("confi
     }
     connect(m_modelActionGroup, &QActionGroup::triggered, this, &MainWindow::modelSelected);
     if (!models.empty()) {
-        m_emulator.selectModel(models.front());
-        m_modelActionGroup->actions().front()->setChecked(true);
+         m_modelActionGroup->actions().front()->trigger();
     }
 
     menuBar()->setNativeMenuBar(false);  // временно
@@ -159,6 +158,14 @@ void MainWindow::modelSelected(QAction* action) {
         return;
     }
     m_emulator.selectModel(action->text().toStdString());
+
+    const IniSectionName model = m_emulator.currentModel();
+    const std::string windowsTitlePrefix = "UPS Emulator — ";
+    if (!model.empty()) {
+        setWindowTitle(QString::fromStdString(windowsTitlePrefix) + QString::fromStdString(model));
+    } else {
+        setWindowTitle(QString::fromStdString(windowsTitlePrefix) + QString("No model selected"));
+    }
 }
 
 void MainWindow::runPushButtonClicked() {

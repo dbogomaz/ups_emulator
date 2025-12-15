@@ -21,6 +21,7 @@ public:
 
     // Выбор модели UPS
     bool selectModel(const IniSectionName& name);
+    IniSectionName currentModel() const;
 
     // Запуск эмулятора
     bool start();
