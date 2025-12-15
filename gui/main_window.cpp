@@ -7,7 +7,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_emulator("config/ups_models.ini") {
     setWindowTitle("UPS Emulator");
     resize(600, 200);
 
@@ -128,5 +128,36 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     menuBar()->setNativeMenuBar(false);  // временно
 
+    updateRunStateUi();
+
+    connect(m_run_PushButton, &QPushButton::clicked, this, &MainWindow::runPushButtonClicked);
+    connect(m_stop_PushButton, &QPushButton::clicked, this, &MainWindow::stopPushButtonClicked);
     connect(m_exit_PushButton, &QPushButton::clicked, this, &QWidget::close);
+}
+
+void MainWindow::updateRunStateUi() {
+    m_run_PushButton->setEnabled(!m_isRunning);
+    m_stop_PushButton->setEnabled(m_isRunning);
+    m_modelMenu->setEnabled(!m_isRunning);
+}
+
+void MainWindow::runPushButtonClicked() {
+    if (m_isRunning) {
+        return;
+    }
+
+    m_emulator.selectModel("APC");  // временно жестко заданная модель
+    m_emulator.run();   // пока просто запуск
+    m_isRunning = true;
+    updateRunStateUi();
+}
+
+void MainWindow::stopPushButtonClicked() {
+    if (!m_isRunning) {
+        return;
+    }
+
+    m_emulator.stop();
+    m_isRunning = false;
+    updateRunStateUi();
 }

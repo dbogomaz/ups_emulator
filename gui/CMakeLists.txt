@@ -19,6 +19,15 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
-target_link_libraries(ups_emulator_gui
-    Qt5::Widgets
+target_include_directories(ups_emulator_gui PUBLIC
+        ${PROJECT_INCLUDE_DIR}
 )
+
+target_link_libraries(ups_emulator_gui PRIVATE
+    Qt5::Widgets
+    ups_core
+)
+
+if (BUILD_COVERAGE)
+    target_link_options(ups_emulator_gui PRIVATE ${COVERAGE_LINK_FLAGS})
+endif()

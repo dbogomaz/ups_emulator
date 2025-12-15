@@ -9,6 +9,8 @@
 #include <QPushButton>
 #include <QSpinBox>
 
+#include "ups_emulator.h"
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -17,6 +19,9 @@ public:
     ~MainWindow() override = default;
 
 private:
+    UpsEmulator m_emulator;
+
+
     // InputStatus
     QSpinBox* m_inputVoltage_SpinBox{ nullptr };
     QSpinBox* m_inputFreq_SpinBox{ nullptr };
@@ -37,6 +42,12 @@ private:
 
     QAction* m_exitAction{ nullptr };
     QActionGroup* m_modelActionGroup{ nullptr };
+
+    bool m_isRunning{ false };
+    void updateRunStateUi();
+
+    void runPushButtonClicked();
+    void stopPushButtonClicked();
 };
 
 #endif  // MAIN_WINDOW_H
