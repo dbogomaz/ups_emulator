@@ -73,10 +73,13 @@ bool UpsDataStore::has(const Oid& oid) const {
     return m_parameters.find(oid) != m_parameters.end();
 }
 
-const UpsParameter* UpsDataStore::get(const Oid& oid) const {
+bool UpsDataStore::get(const Oid& oid, UpsParameter& out) const {
     auto it = m_parameters.find(oid);
-    if (it != m_parameters.end()) return &it->second;
-    return nullptr;
+    if (it != m_parameters.end()) {
+        out = it->second;
+        return true;
+    }
+    return false;
 }
 
 bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMessage* err) {

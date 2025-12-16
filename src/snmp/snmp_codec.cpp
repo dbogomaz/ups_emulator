@@ -29,7 +29,7 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data,
         if (errPtr) *errPtr = err;
         return false;
     }
-    if (verInt != 0 && 
+    if (verInt != 0 &&
         verInt != 1) {  // поддерживаем v1(0) и v2c(1)
         if (errPtr) *errPtr = "Unsupported SNMP version (expected v1 = 0 or v2c = 1)";
         return false;
@@ -129,10 +129,10 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
 // ------------------------------------------------------------
 // readTagAndLength: читает тег expectedTag и длину (ASN.1)
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, 
-                                       const uint8_t* end, 
-                                       uint8_t expectedTag, 
-                                       size_t& outLen, 
+bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p,
+                                       const uint8_t* end,
+                                       uint8_t expectedTag,
+                                       size_t& outLen,
                                        ErrorMessage& err) {
     // 1) Tag
     if (p >= end) {
@@ -529,11 +529,12 @@ void snmp::SnmpCodec::encodeVarBindList(BerWriter& w, const std::vector<Oid>& oi
 
     // Каждый VarBind = SEQUENCE { OID, Value }
     for (const auto& oid : oids) {
-        const UpsParameter* param = nullptr;
-        if (store.has(oid)) {
-            param = store.get(oid);
+        UpsParameter param;
+        if (store.get(oid, param)) {
+            encodeVarBind(w, oid, &param);
+        } else {
+            encodeVarBind(w, oid, nullptr);
         }
-        encodeVarBind(w, oid, param);
     }
 
     // Завершаем SEQUENCE OF

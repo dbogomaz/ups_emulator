@@ -52,15 +52,15 @@ TEST_F(UpsDataStoreTest, Has_ReturnsFalseForUnknownOid) {
 // ---------------------------------------------------------------
 // Получение параметра по OID
 TEST_F(UpsDataStoreTest, Get_ReturnsParameter) {
-    const UpsParameter* p = store.get(cfg.oids().inputVoltageOID);
-    ASSERT_NE(p, nullptr);
-    EXPECT_EQ(p->name, "inputVoltage");
-    EXPECT_EQ(p->type, UpsParameterType::Integer);
+    UpsParameter p;
+    ASSERT_TRUE(store.get(cfg.oids().inputVoltageOID, p));
+    EXPECT_EQ(p.name, "inputVoltage");
+    EXPECT_EQ(p.type, UpsParameterType::Integer);
 }
 // Получение несуществующего параметра
-TEST_F(UpsDataStoreTest, Get_ReturnsNullForUnknown) {
-    const UpsParameter* p = store.get("1.2.3.4.5.6.7.8");
-    EXPECT_EQ(p, nullptr);
+TEST_F(UpsDataStoreTest, Get_ReturnsFalseForUnknown) {
+    UpsParameter p;
+    EXPECT_FALSE(store.get("1.2.3.4.5.6.7.8", p));
 }
 
 // ---------------------------------------------------------------
