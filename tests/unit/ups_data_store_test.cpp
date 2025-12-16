@@ -33,21 +33,6 @@ TEST_F(UpsDataStoreTest, Init_Success) {
 }
 
 // ---------------------------------------------------------------
-// has()
-// ---------------------------------------------------------------
-// Проверка существования OID
-TEST_F(UpsDataStoreTest, Has_ReturnsTrueForExistingOid) {
-    const UpsOids& oids = cfg.oids();
-    EXPECT_TRUE(store.has(oids.modelNameOID));
-    EXPECT_TRUE(store.has(oids.inputVoltageOID));
-    EXPECT_TRUE(store.has(oids.batteryStatusOID));
-}
-// Проверка несуществующего OID
-TEST_F(UpsDataStoreTest, Has_ReturnsFalseForUnknownOid) {
-    EXPECT_FALSE(store.has("1.2.3.4.5.6.7.8.9"));
-}
-
-// ---------------------------------------------------------------
 // get()
 // ---------------------------------------------------------------
 // Получение параметра по OID

@@ -69,10 +69,6 @@ bool UpsDataStore::init(const UpsModelConfig& cfg) {
     return true;
 }
 
-bool UpsDataStore::has(const Oid& oid) const {
-    return m_parameters.find(oid) != m_parameters.end();
-}
-
 bool UpsDataStore::get(const Oid& oid, UpsParameter& out) const {
     auto it = m_parameters.find(oid);
     if (it != m_parameters.end()) {

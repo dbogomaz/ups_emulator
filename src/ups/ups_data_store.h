@@ -12,9 +12,6 @@ public:
     // Инициализация хранилища по конфигурации
     bool init(const UpsModelConfig& cfg);
 
-    // Проверить, существует ли параметр с данным OID
-    bool has(const Oid& oid) const;
-
     // Получить параметр по OID 
     bool get(const Oid& oid, UpsParameter& out) const;
 
