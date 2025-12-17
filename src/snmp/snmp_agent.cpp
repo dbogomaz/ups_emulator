@@ -146,12 +146,6 @@ bool SnmpAgent::run() {
             break;
         }
 
-        // Отладочная печать (можно убрать позже)
-        printf("Received %ld bytes from %s:%d\n",
-               (long)received,
-               inet_ntoa(clientAddr.sin_addr),
-               ntohs(clientAddr.sin_port));
-
         // Обработка пакета
         processSnmpPacket(buffer, (size_t)received, clientAddr, clientLen);
     }
@@ -200,11 +194,6 @@ bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
         perror("sendto");
         return false;
     }
-
-    printf("Sent %ld bytes to %s:%d\n",
-           (long)sent,
-           inet_ntoa(clientAddr.sin_addr),
-           ntohs(clientAddr.sin_port));
 
     return true;
 }
