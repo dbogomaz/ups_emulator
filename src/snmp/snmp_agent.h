@@ -2,6 +2,7 @@
 #define SNMP_AGENT_H
 
 #include <netinet/in.h>
+
 #include <cstddef>
 #include <cstdint>
 
