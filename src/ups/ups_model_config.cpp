@@ -1,8 +1,8 @@
 #include "ups_model_config.h"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <algorithm>
 
 #include "utils/fs_utils.h"
 #include "utils/string_utils.h"
@@ -16,14 +16,14 @@ struct OidFieldInfo {
 };
 
 static const OidFieldInfo OID_FIELDS[] = {
-    {"modelNameOID", &UpsOids::modelNameOID},
-    {"inputVoltageOID", &UpsOids::inputVoltageOID},
-    {"inputFreqOID", &UpsOids::inputFreqOID},
-    {"outputVoltageOID", &UpsOids::outputVoltageOID},
-    {"batteryStatusOID", &UpsOids::batteryStatusOID},
-    {"chargeRemainingOID", &UpsOids::chargeRemainingOID},
-    {"batteryTempOID", &UpsOids::batteryTempOID},
-    {"outputStatusOID", &UpsOids::outputStatusOID},
+    { "modelNameOID", &UpsOids::modelNameOID },
+    { "inputVoltageOID", &UpsOids::inputVoltageOID },
+    { "inputFreqOID", &UpsOids::inputFreqOID },
+    { "outputVoltageOID", &UpsOids::outputVoltageOID },
+    { "batteryStatusOID", &UpsOids::batteryStatusOID },
+    { "chargeRemainingOID", &UpsOids::chargeRemainingOID },
+    { "batteryTempOID", &UpsOids::batteryTempOID },
+    { "outputStatusOID", &UpsOids::outputStatusOID },
 };
 
 // =============================================================
@@ -35,8 +35,8 @@ struct ValueSetFieldInfo {
 };
 
 static const ValueSetFieldInfo VALUESET_FIELDS[] = {
-    {"batteryStatusValues", &FieldValueSets::batteryStatusSet},
-    {"outputStatusValues", &FieldValueSets::outputStatusSet},
+    { "batteryStatusValues", &FieldValueSets::batteryStatusSet },
+    { "outputStatusValues", &FieldValueSets::outputStatusSet },
 };
 
 // =============================================================
@@ -74,17 +74,21 @@ bool UpsModelConfig::load(const std::string& path, const IniSectionName& section
         line = utils::trim(line);
 
         // ---- пропустить пустые строки и комментарии ----
+        // clang-format off
         if (line.empty() || 
             line[0] == '#') 
             continue;
+        // clang-format on
 
         // ---- определение секции ----
+        // clang-format off
         if (line.front() == '[' && 
             line.back() == ']') {
             IniSectionName sec = line.substr(1, line.size() - 2);
             inSection = (sec == section);
             continue;
         }
+        // clang-format on
         if (!inSection) continue;
 
         // ---- должен быть знак '=' ----
@@ -179,18 +183,20 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
     // ----  проверка парности скобок в raw ----
     int openCount = std::count(raw.begin(), raw.end(), '{');
     int closeCount = std::count(raw.begin(), raw.end(), '}');
+    // clang-format off
     if (openCount != 1 || 
         closeCount != 1) {
         m_lastError = "Invalid value-set block: unbalanced braces";
         return false;
     }
+    // clang-format on
 
     std::string s = utils::trim(raw);
 
     // удаление внешних фигурных скобок {}
     s = s.substr(1, s.size() - 2);
 
-    std::stringstream ss{s};
+    std::stringstream ss{ s };
     std::string pair;
 
     while (std::getline(ss, pair, ',')) {
@@ -209,10 +215,12 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
         std::string val = utils::trim(pair.substr(pos + 1));
 
         // ---- remove quotes ----
+        // clang-format off
         if (name.size() >= 2 && 
             name.front() == '"' && 
             name.back() == '"')
             name = name.substr(1, name.size() - 2);
+        // clang-format on
 
         int number = 0;
         try {
