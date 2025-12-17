@@ -12,7 +12,7 @@ function(add_ups_test TEST_NAME)
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests
+        RUNTIME_OUTPUT_DIRECTORY ${TEST_BIN_DIR}
     )
 
     target_compile_options(${TEST_NAME} PRIVATE ${WARN_FLAGS})

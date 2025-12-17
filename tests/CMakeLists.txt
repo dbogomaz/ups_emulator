@@ -11,6 +11,9 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/add_ups_test.cmake)
 set(TEST_DATA_DIR "${CMAKE_SOURCE_DIR}/tests/data")
 add_compile_definitions(TEST_DATA_DIR=\"${TEST_DATA_DIR}\")
 
+# === Папка для бинарников тестов ===
+set(TEST_BIN_DIR "${CMAKE_BINARY_DIR}/bin/tests")
+
 # ===== Добавление тестов =====
 add_ups_test(ups_model_config_test
     unit/ups/ups_model_config/test_load_errors.cpp
