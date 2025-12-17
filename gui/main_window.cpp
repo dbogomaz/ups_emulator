@@ -134,7 +134,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_emulator("confi
     }
     connect(m_modelActionGroup, &QActionGroup::triggered, this, &MainWindow::modelSelected);
     if (!models.empty()) {
-         m_modelActionGroup->actions().front()->trigger();
+        m_modelActionGroup->actions().front()->trigger();
     }
 
     menuBar()->setNativeMenuBar(false);  // временно
