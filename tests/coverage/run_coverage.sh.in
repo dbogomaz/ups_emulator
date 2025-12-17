@@ -35,8 +35,8 @@ set_config() {
         done
     }
 
-    SCRIPT_DIR="$(readlink -f "$(dirname "$0")")" # build/bin
-    BUILD_DIR="$(readlink -f "${SCRIPT_DIR}/..")" # build
+    SCRIPT_DIR="$(readlink -f "$(dirname "$0")")" # build/bin/tests
+    BUILD_DIR="$(readlink -f "${SCRIPT_DIR}/../..")" # build
 
     cd "${BUILD_DIR}"
 }

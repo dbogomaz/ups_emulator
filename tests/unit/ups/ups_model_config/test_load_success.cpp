@@ -5,7 +5,7 @@
 class UpsModelConfigSuccessTest : public ::testing::Test {
 protected:
     UpsModelConfig cfg;
-    std::string iniFile = "config/ups_models.ini";
+    std::string iniFile = std::string(TEST_DATA_DIR) + "/ups_models.ini";
 
     // helper для удобной загрузки секции
     bool loadSection(const std::string& section) {

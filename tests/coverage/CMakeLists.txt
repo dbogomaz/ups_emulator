@@ -19,7 +19,7 @@ endforeach()
 # Генерация coverage-скрипта
 set(COVERAGE_SCRIPT_NAME "run_coverage.sh")
 set(COVERAGE_SCRIPT_IN   "${CMAKE_CURRENT_SOURCE_DIR}/${COVERAGE_SCRIPT_NAME}.in")
-set(COVERAGE_SCRIPT      "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${COVERAGE_SCRIPT_NAME}")
+set(COVERAGE_SCRIPT      "${CMAKE_BINARY_DIR}/bin/tests/${COVERAGE_SCRIPT_NAME}")
 configure_file(
     ${COVERAGE_SCRIPT_IN}
     ${COVERAGE_SCRIPT}

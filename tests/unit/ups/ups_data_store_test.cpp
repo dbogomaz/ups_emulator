@@ -12,7 +12,7 @@ protected:
     ErrorMessage err;
 
     // INI-файл для тестов
-    std::string iniPath = "config/ups_models.ini";
+    std::string iniPath = std::string(TEST_DATA_DIR) + "/ups_models.ini";
     IniSectionName section = "APC";
 
     void SetUp() override {
