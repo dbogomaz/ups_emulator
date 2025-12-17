@@ -33,6 +33,14 @@ public:
     bool ok() const;
     const ErrorMessage& lastError() const;
 
+    bool setInputVoltage(int v);
+    bool setInputFrequency(int hz);
+    bool setChargeRemaining(int percent);
+    bool setBatteryTemperature(int celsius);
+    bool setBatteryStatus(const std::string& status);
+    bool setOutputVoltage(int v);
+    bool setOutputStatus(const std::string& status);
+
 private:
     std::string m_configPath{};
     std::vector<IniSectionName> m_availableModels{};

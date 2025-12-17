@@ -207,3 +207,66 @@ const std::vector<std::string>& UpsEmulator::availableBatteryStatuses() const {
 const std::vector<std::string>& UpsEmulator::availableOutputStatuses() const {
     return m_availableOutputStatuses;
 }
+
+bool UpsEmulator::setInputVoltage(int v) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().inputVoltageOID, std::to_string(v), &err)) {
+        m_lastError = "setInputVoltage: " + err;
+        return false;
+    }
+    return true;
+}
+
+bool UpsEmulator::setInputFrequency(int hz) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().inputFreqOID, std::to_string(hz), &err)) {
+        m_lastError = "setInputFrequency: " + err;
+        return false;
+    }
+    return true;
+}
+
+bool UpsEmulator::setChargeRemaining(int percent) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().chargeRemainingOID, std::to_string(percent), &err)) {
+        m_lastError = "setChargeRemaining: " + err;
+        return false;
+    }
+    return true;
+}
+
+bool UpsEmulator::setBatteryTemperature(int celsius) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().batteryTempOID, std::to_string(celsius), &err)) {
+        m_lastError = "setBatteryTemperature: " + err;
+        return false;
+    }
+    return true;
+}
+
+bool UpsEmulator::setBatteryStatus(const std::string& status) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().batteryStatusOID, status, &err)) {
+        m_lastError = "setBatteryStatus: " + err;
+        return false;
+    }
+    return true;
+}
+
+bool UpsEmulator::setOutputVoltage(int v) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().outputVoltageOID, std::to_string(v), &err)) {
+        m_lastError = "setOutputVoltage: " + err;
+        return false;
+    }
+    return true;
+}
+
+bool UpsEmulator::setOutputStatus(const std::string& status) {
+    ErrorMessage err;
+    if (!m_store.set(m_config.oids().outputStatusOID, status, &err)) {
+        m_lastError = "setOutputStatus: " + err;
+        return false;
+    }
+    return true;
+}
