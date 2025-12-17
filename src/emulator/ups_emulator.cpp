@@ -17,9 +17,7 @@ UpsEmulator::UpsEmulator(const std::string& configPath)
     m_availableModels = reader.sections();
 }
 
-UpsEmulator::~UpsEmulator() {
-    stop();
-}
+UpsEmulator::~UpsEmulator() { stop(); }
 
 bool UpsEmulator::selectModel(const IniSectionName& name) {
     m_lastError.clear();
@@ -57,7 +55,6 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
         // m_lastError заполнен в fillDefaults()
         return false;
     }
-
 
     // Заполняем доступные статусы батареи и выхода
     m_availableBatteryStatuses.clear();
@@ -154,8 +151,7 @@ bool UpsEmulator::start() {
     // 2. Привязка SNMP-агента к порту
     constexpr int SNMP_PORT = 161;
     if (!m_agent.bind(SNMP_PORT)) {
-        m_lastError = "Failed to bind SNMP agent to port " +
-                      std::to_string(SNMP_PORT);
+        m_lastError = "Failed to bind SNMP agent to port " + std::to_string(SNMP_PORT);
         return false;
     }
 
@@ -184,9 +180,7 @@ void UpsEmulator::runAgent() {
     m_running.store(false);
 }
 
-bool UpsEmulator::isRunning() const {
-    return m_running.load();
-}
+bool UpsEmulator::isRunning() const { return m_running.load(); }
 
 bool UpsEmulator::ok() const { return m_lastError.empty(); }
 
@@ -196,9 +190,7 @@ const std::vector<IniSectionName>& UpsEmulator::availableModels() const {
     return m_availableModels;
 }
 
-IniSectionName UpsEmulator::currentModel() const {
-    return m_currentModel;
-}
+IniSectionName UpsEmulator::currentModel() const { return m_currentModel; }
 
 const std::vector<std::string>& UpsEmulator::availableBatteryStatuses() const {
     return m_availableBatteryStatuses;

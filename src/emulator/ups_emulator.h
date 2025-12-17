@@ -1,10 +1,10 @@
 #ifndef UPS_EMULATOR_H
 #define UPS_EMULATOR_H
 
-#include <string>
-#include <vector>
-#include <thread>
 #include <atomic>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "ini_section_reader.h"
 #include "snmp_agent.h"
@@ -50,12 +50,12 @@ private:
 
     UpsModelConfig m_config{};
     UpsDataStore m_store{};
-    SnmpAgent m_agent{nullptr};
+    SnmpAgent m_agent{ nullptr };
 
     ErrorMessage m_lastError{};
 
     std::thread m_thread;
-    std::atomic<bool> m_running{false};
+    std::atomic<bool> m_running{ false };
 
     // Основной цикл агента
     void runAgent();
