@@ -58,6 +58,18 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
         return false;
     }
 
+
+    // Заполняем доступные статусы батареи и выхода
+    m_availableBatteryStatuses.clear();
+    for (const auto& pair : m_config.definedFields().batteryStatusSet.nameToValue) {
+        m_availableBatteryStatuses.push_back(pair.first);
+    }
+
+    m_availableOutputStatuses.clear();
+    for (const auto& pair : m_config.definedFields().outputStatusSet.nameToValue) {
+        m_availableOutputStatuses.push_back(pair.first);
+    }
+
     printf("Model selected: %s\n", name.c_str());
     return true;
 }
@@ -186,4 +198,12 @@ const std::vector<IniSectionName>& UpsEmulator::availableModels() const {
 
 IniSectionName UpsEmulator::currentModel() const {
     return m_currentModel;
+}
+
+const std::vector<std::string>& UpsEmulator::availableBatteryStatuses() const {
+    return m_availableBatteryStatuses;
+}
+
+const std::vector<std::string>& UpsEmulator::availableOutputStatuses() const {
+    return m_availableOutputStatuses;
 }

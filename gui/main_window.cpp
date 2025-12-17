@@ -166,6 +166,20 @@ void MainWindow::modelSelected(QAction* action) {
     } else {
         setWindowTitle(QString::fromStdString(windowsTitlePrefix) + QString("No model selected"));
     }
+
+    // Заполняем ComboBox для BatteryStatus
+    m_batteryStatus_ComboBox->clear();
+    const auto& batteryStatuses = m_emulator.availableBatteryStatuses();
+    for (const auto& status : batteryStatuses) {
+        m_batteryStatus_ComboBox->addItem(QString::fromStdString(status));
+    }
+
+    // Заполняем ComboBox для OutputStatus
+    m_outputStatus_ComboBox->clear();
+    const auto& outputStatuses = m_emulator.availableOutputStatuses();
+    for (const auto& status : outputStatuses) {
+        m_outputStatus_ComboBox->addItem(QString::fromStdString(status));
+    }
 }
 
 void MainWindow::runPushButtonClicked() {

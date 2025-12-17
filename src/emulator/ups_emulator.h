@@ -18,6 +18,8 @@ public:
     ~UpsEmulator();
 
     const std::vector<IniSectionName>& availableModels() const;
+    const std::vector<std::string>& availableBatteryStatuses() const;
+    const std::vector<std::string>& availableOutputStatuses() const;
 
     // Выбор модели UPS
     bool selectModel(const IniSectionName& name);
@@ -35,6 +37,8 @@ private:
     std::string m_configPath{};
     std::vector<IniSectionName> m_availableModels{};
     IniSectionName m_currentModel{};
+    std::vector<std::string> m_availableBatteryStatuses{};
+    std::vector<std::string> m_availableOutputStatuses{};
 
     UpsModelConfig m_config{};
     UpsDataStore m_store{};
