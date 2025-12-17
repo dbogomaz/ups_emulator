@@ -32,13 +32,18 @@ void IniSectionReader::scan() {
         line = utils::trim(line);
 
         // ---- пропустить пустые строки и комментарии ----
+        // clang-format off
         if (line.empty() || 
-            line[0] == '#') 
+            line[0] == '#')
+        // clang-format on 
             continue;
 
         // Строка должна быть вида [SECTION]
+        // clang-format off
         if (line.front() == '[' && 
-            line.back() == ']') {
+            line.back() == ']')
+        // clang-format on
+        {
             IniSectionName section = line.substr(1, line.size() - 2);
             section = utils::trim(section);
 

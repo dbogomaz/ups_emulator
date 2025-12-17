@@ -23,10 +23,10 @@ std::string readMultilineBracedBlock(std::ifstream& file, const std::string& fir
     std::string line;
     while (std::getline(file, line)) {
         line = utils::trim(line);
-
+        // clang-format off
         if (line.empty() || 
             line[0] == '#') continue;
-
+        // clang-format on
         result += " " + line;
 
         if (line.find('}') != std::string::npos) break;

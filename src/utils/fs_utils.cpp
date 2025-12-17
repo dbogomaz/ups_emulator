@@ -1,7 +1,9 @@
 #include "fs_utils.h"
-#include <string>
+
 #include <limits.h>
 #include <unistd.h>
+
+#include <string>
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -10,16 +12,15 @@
 
 namespace utils {
 
-std::string getBinaryDir()
-{
+std::string getBinaryDir() {
 #if defined(__linux__)
     // ----- Linux -----
     char buf[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
+    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
     if (len == -1)
         // LCOV_EXCL_START
         return ".";
-        // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
 
     buf[len] = '\0';
     std::string path(buf);
@@ -30,7 +31,7 @@ std::string getBinaryDir()
     char buf[PATH_MAX];
     uint32_t size = sizeof(buf);
 
-    // 1) Пытаемся писать сразу в локальный массив
+    // Пытаемся писать сразу в локальный массив
     if (_NSGetExecutablePath(buf, &size) != 0) {
         // Буфер мал — выделяем вручную
         char* m = new char[size];
@@ -45,8 +46,7 @@ std::string getBinaryDir()
 
         // Разрешаем symlink
         char resolved[PATH_MAX];
-        if (realpath(path.c_str(), resolved) != nullptr)
-            path = resolved;
+        if (realpath(path.c_str(), resolved) != nullptr) path = resolved;
 
         return path.substr(0, path.find_last_of('/'));
     }
@@ -56,22 +56,17 @@ std::string getBinaryDir()
 
     // Разрешаем symlink
     char resolved[PATH_MAX];
-    if (realpath(path.c_str(), resolved) != nullptr)
-        path = resolved;
+    if (realpath(path.c_str(), resolved) != nullptr) path = resolved;
 
     return path.substr(0, path.find_last_of('/'));
-
 #else
     return ".";
 #endif
 }
 
-std::string resolvePath(const std::string& path)
-{
-    if (!path.empty() && path[0] == '/')
-        return path;
-
+std::string resolvePath(const std::string& path) {
+    if (!path.empty() && path[0] == '/') return path;
     return getBinaryDir() + "/" + path;
 }
 
-} // namespace utils
+}  // namespace utils
