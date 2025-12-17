@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "snmp_codec.h"
 
 using namespace snmp;
@@ -11,7 +12,7 @@ protected:
 
     // Helpers для удобного вызова декодирования
     bool decode(const uint8_t* data, size_t size) {
-        req = SnmpGetRequest{}; // сброс
+        req = SnmpGetRequest{};  // сброс
         err.clear();
         return codec.decodeGetRequest(data, size, req, &err);
     }
@@ -27,44 +28,48 @@ protected:
 // Пример запроса с неверным верхнеуровневым тегом:
 TEST_F(SnmpCodecDecodeErrors, InvalidTopLevelTag) {
     // Первый байт НЕ 0x30 (SEQUENCE) → ошибка
+    // clang-format off
     uint8_t data[] = {
         0x31, 0x05,      // WRONG tag
         0x02, 0x01, 0x00 // version = 0 (хотя мы даже сюда не должны дойти)
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x30, got 0x31");
 }
 // Пример запроса с длиной SEQUENCE, превышающей размер буфера:
 TEST_F(SnmpCodecDecodeErrors, SequenceLengthExceedsBuffer) {
     // Корректный тег 0x30, НО длина 50 — больше, чем реально есть в массиве
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x32,      // length = 50 (0x32), но данных всего 3 байта
         0x02, 0x01, 0x00 // version = 0
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x30 length exceeds buffer");
 }
 // Некорректный запрос: Пустой буфер
 TEST_F(SnmpCodecDecodeErrors, UnexpectedEndBeforeTag) {
-    uint8_t data = 0xFF; // Пустой буфер
+    uint8_t data = 0xFF;  // Пустой буфер
     ASSERT_FALSE(decode(&data, 0));
     ASSERT_EQ(err, "Unexpected end of buffer while reading tag 0x30");
 }
 // Некорректный запрос: буфер заканчивается без длины
 TEST_F(SnmpCodecDecodeErrors, UnexpectedEndWhileReadingTag) {
     uint8_t data[] = {
-        0x30 // длина отсутствует - чтение length/tags сломается в readTagAndLength
+        0x30  // длина отсутствует - чтение length/tags сломается в readTagAndLength
     };
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Unexpected end of buffer while reading tag 0x30 length");
 }
-
 
 // =======================================================
 // Group 2 — Errors in Version (INTEGER)
 // =======================================================
 // Пример запроса с неверным тегом версии (должен быть INTEGER = 0x02)
 TEST_F(SnmpCodecDecodeErrors, InvalidVersionTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x07,          // SEQUENCE, length=7
             0x05,            // WRONG tag (should be 0x02)
@@ -72,63 +77,71 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVersionTag) {
             0x04, 0x01, 'x', // community string
             0xA0, 0x00       // empty GetRequest
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x02, got 0x05");
 }
 // Некорректная длина версии: length = 0
 TEST_F(SnmpCodecDecodeErrors, InvalidVersionLengthZero) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x02,     // SEQUENCE
             0x02, 0x00, // INTEGER tag, length=0 (ошибка)
             // нет данных
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x02 length is zero");
 }
 // Пример запроса с неподдерживаемым значением версии (например, 2)
 TEST_F(SnmpCodecDecodeErrors, UnsupportedVersionValue) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x08,           // SEQUENCE length = 8
             0x02, 0x01, 0x02, // INTEGER version = 2 (unsupported)
             0x04, 0x01, 'x',  // community
             0xA0, 0x00        // empty GetRequest PDU
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Unsupported SNMP version (expected v1 = 0 or v2c = 1)");
 }
-
 
 // =======================================================
 // Group 3 — Errors in Community (OCTET STRING)
 // =======================================================
 // Пример запроса с неверной длиной строки Community (длина превышает буфер)
 TEST_F(SnmpCodecDecodeErrors, InvalidCommunityLength) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x06,                 // SEQUENCE len=6
             0x02, 0x01, 0x00,       // version = 0
             0x04, 0x05, 'p','u','b' // length = 5, but only 3 bytes
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x04 length exceeds buffer");
 }
-
 
 // =======================================================
 // Group 4 — Errors in GetRequest PDU header
 // =======================================================
 // Неверный тег GetRequest (должен быть A0)
 TEST_F(SnmpCodecDecodeErrors, InvalidGetRequestTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x08,           // SEQUENCE len=8
             0x02, 0x01, 0x00, // version = 0
             0x04, 0x01, 'x',  // community = "x"
             0xA1, 0x00        // WRONG tag (should be A0)
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0xA0, got 0xA1");
 }
 // PDU length указывает за пределы верхнего SEQUENCE - ошибка
 TEST_F(SnmpCodecDecodeErrors, GetRequestLengthExceedsBounds) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x08,           // SEQUENCE, length = 7 bytes
             0x02, 0x01, 0x00, // version = 0
@@ -136,11 +149,13 @@ TEST_F(SnmpCodecDecodeErrors, GetRequestLengthExceedsBounds) {
             0xA0, 0x05        // PDU length = 5 (но реально доступно всего 1 байт)
             // нет 5 байт информации — это выход за msgEnd
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
 }
 // PDU length указывает за предел msgEnd (ошибка "PDU length exceeds message bounds")
 TEST_F(SnmpCodecDecodeErrors, GetRequestLengthTooBig) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x0A,              // SEQUENCE length = 10
             0x02, 0x01, 0x00,    // version = 0
@@ -148,16 +163,17 @@ TEST_F(SnmpCodecDecodeErrors, GetRequestLengthTooBig) {
             0xA0, 0x05,          // PDU length = 5, но должно быть 3
                 0x00, 0x00  // request-id = 1
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0xA0 length exceeds buffer");
 }
-
 
 // =======================================================
 // Group 5 — Errors in request-id / error-status / error-index
 // =======================================================
 // Пример запроса с неверным тегом request-id (должен быть INTEGER = 0x02)
 TEST_F(SnmpCodecDecodeErrors, InvalidRequestIdTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x0B,              // SEQUENCE, length = 11
             0x02, 0x01, 0x00,    // version
@@ -165,11 +181,13 @@ TEST_F(SnmpCodecDecodeErrors, InvalidRequestIdTag) {
             0xA0, 0x03,          // PDU length = 3
                 0x05, 0x01, 0x00 // WRONG TAG (should be 0x02)
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x02, got 0x05");
 }
 // Пример запроса с неверным тегом error-status (должен быть INTEGER = 0x02)
 TEST_F(SnmpCodecDecodeErrors, InvalidErrorStatusTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x0D,               // SEQUENCE length = 13
             0x02, 0x01, 0x00,     // version = 0
@@ -178,11 +196,13 @@ TEST_F(SnmpCodecDecodeErrors, InvalidErrorStatusTag) {
                 0x02, 0x01, 0x01, // request-id INTEGER (value 1)
                 0x05, 0x00        // WRONG TAG (should be INTEGER 0x02)
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x02, got 0x05");
 }
 // Пример запроса с неверным тегом error-index (должен быть INTEGER = 0x02)
 TEST_F(SnmpCodecDecodeErrors, InvalidErrorIndexTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x10,               // SEQUENCE length = 16
             0x02, 0x01, 0x00,     // version
@@ -192,16 +212,17 @@ TEST_F(SnmpCodecDecodeErrors, InvalidErrorIndexTag) {
                 0x02, 0x01, 0x00, // error-status
                 0x05, 0x00        // WRONG TAG instead of INTEGER
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x02, got 0x05");
 }
-
 
 // =======================================================
 // Group 6 — Errors in VarBindList / VarBind
 // =======================================================
 // Неверный тег VarBind (должен быть SEQUENCE = 0x30)
 TEST_F(SnmpCodecDecodeErrors, InvalidVarBindTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x17,                // SEQUENCE length = 23
             0x02, 0x01, 0x00,      // version = 0
@@ -214,11 +235,13 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVarBindTag) {
                     0x31, 0x02,    // WRONG VarBind tag (should be 0x30)
                         0x06, 0x00 // dummy
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x30, got 0x31");
 }
 // Неверный тег VarBindList (должен быть SEQUENCE = 0x30)
 TEST_F(SnmpCodecDecodeErrors, InvalidVarBindListTag) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x17,                // SEQUENCE length = 23
             0x02, 0x01, 0x00,      // version = 0
@@ -231,11 +254,13 @@ TEST_F(SnmpCodecDecodeErrors, InvalidVarBindListTag) {
                     0x30, 0x02,    // VarBind #1
                         0x06, 0x00 // dummy
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid tag: expected 0x30, got 0x31");
 }
 // Ошибка: длина OID равна нулю (06 00)
 TEST_F(SnmpCodecDecodeErrors, InvalidOidLengthZero) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x17,                   // SEQUENCE (23 bytes)
             0x02, 0x01, 0x00,         // version = 0
@@ -248,11 +273,13 @@ TEST_F(SnmpCodecDecodeErrors, InvalidOidLengthZero) {
                     0x30, 0x02,       // VarBind len = 2
                         0x06, 0x00    // OID tag, length = 0  ← ошибка
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x06 length is zero");
 }
 // Незаполненный base-128 arc в конце OID
 TEST_F(SnmpCodecDecodeErrors, OidUnfinishedArc) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x1B,               // SEQUENCE (27 bytes)
             0x02, 0x01, 0x00,     // version = 0
@@ -266,11 +293,13 @@ TEST_F(SnmpCodecDecodeErrors, OidUnfinishedArc) {
                         0x06, 0x02, 0x2B, 0x86, // OID: 1.3 + unfinished arc
                         0x05, 0x00            // NULL value
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "OID ended unexpectedly (unfinished arc)");
 }
 // Ошибка: VarBind без поля value
 TEST_F(SnmpCodecDecodeErrors, VarBindMissingValueField) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x18,               // SEQUENCE (24 bytes)
             0x02, 0x01, 0x00,     // version
@@ -283,11 +312,13 @@ TEST_F(SnmpCodecDecodeErrors, VarBindMissingValueField) {
                     0x30, 0x03,   // VarBind (4 bytes)
                         0x06, 0x01, 0x2B  // OID: 1.3, НЕТ ПОЛЯ VALUE
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "VarBind missing value field");
 }
 // Ошибка: VarBind содержит неподдерживаемый тег значения
 TEST_F(SnmpCodecDecodeErrors, VarBindUnsupportedValueType) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x1A,
             0x02, 0x01, 0x00,
@@ -301,39 +332,45 @@ TEST_F(SnmpCodecDecodeErrors, VarBindUnsupportedValueType) {
                     0x06, 0x01, 0x2B, // OID = 1.3
                     0x01, 0x00        // WRONG TAG = BOOLEAN (unsupported)
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "VarBind contains unsupported value type");
 }
-
 
 // =======================================================
 // Group 7 — Errors in ASN.1 length (long-form)
 // =======================================================
 // Ошибка: long-form длина с count = 0 (запрещено ASN.1)
 TEST_F(SnmpCodecDecodeErrors, InvalidLongLengthZeroCount) {
+    // clang-format off
     uint8_t data[] = {
         0x30,       // SEQUENCE tag
         0x80        // long length, count = 0 - invalid
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Invalid ASN.1 length: long form with zero count");
 }
 // Ошибка: указано 2 байта длины, а в буфере доступен только один
 TEST_F(SnmpCodecDecodeErrors, LongLengthFieldExceedsBuffer) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x82,  // SEQUENCE, long form, count = 2
         0x12         // только 1 байт данных, а нужно 2
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Length field exceeds buffer");
 }
 // Ошибка: длина корректно декодирована (256), но выходит за пределы буфера
 TEST_F(SnmpCodecDecodeErrors, LongLengthContentExceedsBuffer) {
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x82,       // SEQUENCE, long form, 2 length bytes
         0x01, 0x00,       // длина = 256 байт
         0x00              // но реально всего 1 байт полезных данных
     };
+    // clang-format on
     ASSERT_FALSE(decode(data, sizeof(data)));
     ASSERT_EQ(err, "Tag 0x30 length exceeds buffer");
 }

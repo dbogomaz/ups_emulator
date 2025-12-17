@@ -26,9 +26,7 @@ protected:
 // ============================================================
 
 // Тест 1.1: Агент сразу после создания не запущен
-TEST_F(SnmpAgentTest, Initial_1_NotRunning) {
-    EXPECT_FALSE(agent.isRunning());
-}
+TEST_F(SnmpAgentTest, Initial_1_NotRunning) { EXPECT_FALSE(agent.isRunning()); }
 
 // Тест 1.2: Запуск без bind() невозможен
 TEST_F(SnmpAgentTest, Initial_2_RunWithoutBindFails) {
