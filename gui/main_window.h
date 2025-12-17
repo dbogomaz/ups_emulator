@@ -48,6 +48,8 @@ private:
 
     void runPushButtonClicked();
     void stopPushButtonClicked();
+
+    void applyGuiValuesToEmulator();
 };
 
 #endif  // MAIN_WINDOW_H

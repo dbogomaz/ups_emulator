@@ -144,6 +144,35 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_emulator("confi
     connect(m_run_PushButton, &QPushButton::clicked, this, &MainWindow::runPushButtonClicked);
     connect(m_stop_PushButton, &QPushButton::clicked, this, &MainWindow::stopPushButtonClicked);
     connect(m_exit_PushButton, &QPushButton::clicked, this, &QWidget::close);
+
+    connect(m_inputVoltage_SpinBox,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
+    connect(m_inputFreq_SpinBox,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
+    connect(m_chargeRemaining_SpinBox,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
+    connect(m_batteryTemp_SpinBox,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
+    connect(m_batteryStatus_ComboBox,
+            &QComboBox::currentTextChanged,
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
+    connect(m_outputVoltage_SpinBox,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
+    connect(m_outputStatus_ComboBox,
+            &QComboBox::currentTextChanged,
+            this,
+            &MainWindow::applyGuiValuesToEmulator);
 }
 
 void MainWindow::updateRunStateUi() {
@@ -180,6 +209,8 @@ void MainWindow::modelSelected(QAction* action) {
     for (const auto& status : outputStatuses) {
         m_outputStatus_ComboBox->addItem(QString::fromStdString(status));
     }
+
+    applyGuiValuesToEmulator();
 }
 
 void MainWindow::runPushButtonClicked() {
@@ -193,4 +224,16 @@ void MainWindow::runPushButtonClicked() {
 void MainWindow::stopPushButtonClicked() {
     m_emulator.stop();
     updateRunStateUi();
+}
+
+void MainWindow::applyGuiValuesToEmulator() {
+    m_emulator.setInputVoltage(m_inputVoltage_SpinBox->value());
+    m_emulator.setInputFrequency(m_inputFreq_SpinBox->value());
+
+    m_emulator.setChargeRemaining(m_chargeRemaining_SpinBox->value());
+    m_emulator.setBatteryTemperature(m_batteryTemp_SpinBox->value());
+    m_emulator.setBatteryStatus(m_batteryStatus_ComboBox->currentText().toStdString());
+
+    m_emulator.setOutputVoltage(m_outputVoltage_SpinBox->value());
+    m_emulator.setOutputStatus(m_outputStatus_ComboBox->currentText().toStdString());
 }
