@@ -12,7 +12,7 @@ protected:
     ErrorMessage err;
 
     // INI-файл для тестов
-    std::string iniPath = "config/ups_models.ini";
+    std::string iniPath = std::string(TEST_DATA_DIR) + "/ups_models.ini";
     IniSectionName section = "APC";
 
     void SetUp() override {
@@ -33,34 +33,19 @@ TEST_F(UpsDataStoreTest, Init_Success) {
 }
 
 // ---------------------------------------------------------------
-// has()
-// ---------------------------------------------------------------
-// Проверка существования OID
-TEST_F(UpsDataStoreTest, Has_ReturnsTrueForExistingOid) {
-    const UpsOids& oids = cfg.oids();
-    EXPECT_TRUE(store.has(oids.modelNameOID));
-    EXPECT_TRUE(store.has(oids.inputVoltageOID));
-    EXPECT_TRUE(store.has(oids.batteryStatusOID));
-}
-// Проверка несуществующего OID
-TEST_F(UpsDataStoreTest, Has_ReturnsFalseForUnknownOid) {
-    EXPECT_FALSE(store.has("1.2.3.4.5.6.7.8.9"));
-}
-
-// ---------------------------------------------------------------
 // get()
 // ---------------------------------------------------------------
 // Получение параметра по OID
 TEST_F(UpsDataStoreTest, Get_ReturnsParameter) {
-    const UpsParameter* p = store.get(cfg.oids().inputVoltageOID);
-    ASSERT_NE(p, nullptr);
-    EXPECT_EQ(p->name, "inputVoltage");
-    EXPECT_EQ(p->type, UpsParameterType::Integer);
+    UpsParameter p;
+    ASSERT_TRUE(store.get(cfg.oids().inputVoltageOID, p));
+    EXPECT_EQ(p.name, "inputVoltage");
+    EXPECT_EQ(p.type, UpsParameterType::Integer);
 }
 // Получение несуществующего параметра
-TEST_F(UpsDataStoreTest, Get_ReturnsNullForUnknown) {
-    const UpsParameter* p = store.get("1.2.3.4.5.6.7.8");
-    EXPECT_EQ(p, nullptr);
+TEST_F(UpsDataStoreTest, Get_ReturnsFalseForUnknown) {
+    UpsParameter p;
+    EXPECT_FALSE(store.get("1.2.3.4.5.6.7.8", p));
 }
 
 // ---------------------------------------------------------------

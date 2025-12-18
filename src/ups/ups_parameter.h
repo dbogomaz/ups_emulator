@@ -2,6 +2,7 @@
 #define UPS_PARAMETER_H
 
 #include <string>
+
 #include "ups_types.h"
 
 /**
@@ -52,10 +53,10 @@ struct UpsParameter {
      * Значение может содержать:
      *  - целое число ("230")
      *  - строку ("Smart-UPS RT 2000 XL")
-     * 
+     *
      * UpsDataStore отвечает за корректность и валидацию.
      */
     UpsParameterValue value;
 };
 
-#endif // UPS_PARAMETER_H
+#endif  // UPS_PARAMETER_H

@@ -3,6 +3,8 @@
 #include "utils/string_utils.h"
 
 bool UpsDataStore::init(const UpsModelConfig& cfg) {
+    // Блокировка на время инициализации
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_parameters.clear();
     m_valueSets.clear();
 
@@ -38,48 +40,24 @@ bool UpsDataStore::init(const UpsModelConfig& cfg) {
     if (!sets.outputStatusSet.nameToValue.empty())
         m_valueSets[oids.outputStatusOID] = &sets.outputStatusSet;
 
-#if 0  // ---- Отладочный вывод загруженных параметров ----
-    printf("\n\n=== UpsDataStore Initialized ===\n");
-    // Выводим по имени
-    auto it = m_valueSets.begin();
-    while (it != m_valueSets.end()) {
-        printf("ValueSet for OID: %s\n", it->first.c_str());
-        auto itFieldSet = it->second->nameToValue.begin();
-        while (itFieldSet != it->second->nameToValue.end()) {
-            printf("\t%s = %d\n", itFieldSet->first.c_str(), itFieldSet->second);
-            ++itFieldSet;
-        }
-        ++it;
-    }
-    printf("\n");
-    // Выводим по значению
-    it = m_valueSets.begin();
-    while (it != m_valueSets.end()) {
-        printf("ValueSet for OID: %s\n", it->first.c_str());
-        auto itFieldSet = it->second->valueToName.begin();
-        while (itFieldSet != it->second->valueToName.end()) {
-            printf("\t%d = %s\n", itFieldSet->first, itFieldSet->second.c_str());
-            ++itFieldSet;
-        }
-        ++it;
-    }
-    printf("\n");
-#endif
-
     return true;
 }
 
-bool UpsDataStore::has(const Oid& oid) const {
-    return m_parameters.find(oid) != m_parameters.end();
-}
-
-const UpsParameter* UpsDataStore::get(const Oid& oid) const {
+bool UpsDataStore::get(const Oid& oid, UpsParameter& out) const {
+    // Блокировка на время чтения
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_parameters.find(oid);
-    if (it != m_parameters.end()) return &it->second;
-    return nullptr;
+    if (it != m_parameters.end()) {
+        out = it->second;
+        return true;
+    }
+    return false;
 }
 
 bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMessage* err) {
+    // Блокировка на время изменения
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     // ---- 1. Найти параметр ----
     UpsParameter* p = nullptr;
     auto it = m_parameters.find(oid);

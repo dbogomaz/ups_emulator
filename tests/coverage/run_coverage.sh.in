@@ -35,9 +35,7 @@ set_config() {
         done
     }
 
-    SCRIPT_DIR="$(readlink -f "$(dirname "$0")")" # build/bin
-    BUILD_DIR="$(readlink -f "${SCRIPT_DIR}/..")" # build
-
+    BUILD_DIR="@CMAKE_BINARY_DIR@"
     cd "${BUILD_DIR}"
 }
 

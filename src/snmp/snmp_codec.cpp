@@ -1,10 +1,8 @@
 #include "snmp/snmp_codec.h"
 
 #include <cstring>
-#include <cstdio>  // временно для отладки (потом уберём)
 
-
-#if 1 // public
+#if 1  // public
 // ============================================================
 // decodeGetRequest (SNMPv1, SNMPv2c)
 // ============================================================
@@ -29,11 +27,13 @@ bool snmp::SnmpCodec::decodeGetRequest(const uint8_t* data,
         if (errPtr) *errPtr = err;
         return false;
     }
-    if (verInt != 0 && 
+    // clang-format off
+    if (verInt != 0 &&
         verInt != 1) {  // поддерживаем v1(0) и v2c(1)
         if (errPtr) *errPtr = "Unsupported SNMP version (expected v1 = 0 or v2c = 1)";
         return false;
     }
+    // clang-format on
     outReq.version = static_cast<SnmpVersion>(verInt);
 
     // 3) community (public) OCTET STRING
@@ -121,7 +121,7 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
 
 #endif
 
-#if 1 // decoding helpers
+#if 1  // decoding helpers
 // ============================================================
 // ASN.1 decoding helpers
 // ============================================================
@@ -129,24 +129,21 @@ bool snmp::SnmpCodec::encodeGetResponse(const SnmpGetRequest& req,
 // ------------------------------------------------------------
 // readTagAndLength: читает тег expectedTag и длину (ASN.1)
 // ------------------------------------------------------------
-bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p, 
-                                       const uint8_t* end, 
-                                       uint8_t expectedTag, 
-                                       size_t& outLen, 
-                                       ErrorMessage& err) {
+bool snmp::SnmpCodec::readTagAndLength(
+    const uint8_t*& p, const uint8_t* end, uint8_t expectedTag, size_t& outLen, ErrorMessage& err) {
     // 1) Tag
     if (p >= end) {
         char buf[128];
-        std::snprintf(buf, sizeof(buf), "Unexpected end of buffer while reading tag 0x%02X",
-                      expectedTag);
+        std::snprintf(
+            buf, sizeof(buf), "Unexpected end of buffer while reading tag 0x%02X", expectedTag);
         err = buf;
         return false;
     }
     uint8_t tag = *p;
     if (tag != expectedTag) {
         char buf[128];
-        std::snprintf(buf, sizeof(buf), "Invalid tag: expected 0x%02X, got 0x%02X", expectedTag,
-                      tag);
+        std::snprintf(
+            buf, sizeof(buf), "Invalid tag: expected 0x%02X, got 0x%02X", expectedTag, tag);
         err = buf;
         return false;
     }
@@ -155,7 +152,9 @@ bool snmp::SnmpCodec::readTagAndLength(const uint8_t*& p,
     // 2) Length
     if (p >= end) {
         char buf[128];
-        std::snprintf(buf, sizeof(buf), "Unexpected end of buffer while reading tag 0x%02X length",
+        std::snprintf(buf,
+                      sizeof(buf),
+                      "Unexpected end of buffer while reading tag 0x%02X length",
                       expectedTag);
         err = buf;
         return false;
@@ -522,32 +521,35 @@ void snmp::SnmpCodec::encodeVarBind(BerWriter& w, const Oid& oid, const UpsParam
     w.endSequence(seqStart);
 }
 
-void snmp::SnmpCodec::encodeVarBindList(BerWriter& w, const std::vector<Oid>& oids,
+void snmp::SnmpCodec::encodeVarBindList(BerWriter& w,
+                                        const std::vector<Oid>& oids,
                                         const UpsDataStore& store) const {
     // Начинаем SEQUENCE OF VarBind
     size_t seqStart = w.beginSequence(TAG_SEQUENCE);
 
     // Каждый VarBind = SEQUENCE { OID, Value }
     for (const auto& oid : oids) {
-        const UpsParameter* param = nullptr;
-        if (store.has(oid)) {
-            param = store.get(oid);
+        UpsParameter param;
+        if (store.get(oid, param)) {
+            encodeVarBind(w, oid, &param);
+        } else {
+            encodeVarBind(w, oid, nullptr);
         }
-        encodeVarBind(w, oid, param);
     }
 
     // Завершаем SEQUENCE OF
     w.endSequence(seqStart);
 }
 
-void snmp::SnmpCodec::encodeGetResponsePdu(BerWriter& w, const SnmpGetRequest& req,
+void snmp::SnmpCodec::encodeGetResponsePdu(BerWriter& w,
+                                           const SnmpGetRequest& req,
                                            const UpsDataStore& store) const {
     // Begin PDU (tag = A2)
     size_t pduStart = w.beginSequence(TAG_GETRESPONSE);
-    encodeInteger(w, req.requestId);// request-id
-    encodeInteger(w, 0); // error-status = 0
-    encodeInteger(w, 0); // error-index = 0
-    encodeVarBindList(w, req.oids, store); // VarBindList
+    encodeInteger(w, req.requestId);        // request-id
+    encodeInteger(w, 0);                    // error-status = 0
+    encodeInteger(w, 0);                    // error-index = 0
+    encodeVarBindList(w, req.oids, store);  // VarBindList
     // close PDU sequence
     w.endSequence(pduStart);
 }

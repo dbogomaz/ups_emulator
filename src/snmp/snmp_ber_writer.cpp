@@ -64,7 +64,8 @@ void BerWriter::endSequence(size_t anchorOffset) {
     if (newLenFieldSize != oldLenFieldSize) {
         // сдвигаем хвост вправо
         m_out.resize(m_out.size() + (newLenFieldSize - oldLenFieldSize));
-        memmove(&m_out[anchorOffset + newLenFieldSize], &m_out[anchorOffset + oldLenFieldSize],
+        memmove(&m_out[anchorOffset + newLenFieldSize],
+                &m_out[anchorOffset + oldLenFieldSize],
                 contentLength);
     }
 
