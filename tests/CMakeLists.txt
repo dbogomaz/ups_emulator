@@ -48,7 +48,9 @@ add_ups_test(snmp_agent_test
 )
 
 add_ups_test(ups_emulator_test
-    unit/ups/ups_emulator/test_ups_emulator_init.cpp)
+    unit/ups/ups_emulator/test_ups_emulator_init.cpp
+    unit/ups/ups_emulator/test_ups_emulator_model_selection.cpp
+)
 
 add_subdirectory(googletest)
 
