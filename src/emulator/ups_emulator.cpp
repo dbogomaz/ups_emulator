@@ -139,7 +139,7 @@ bool UpsEmulator::fillDefaults() {
     return true;
 }
 
-bool UpsEmulator::start() {
+bool UpsEmulator::start(uint16_t port) {
     m_lastError.clear();
 
     // 1. Проверка, что модель выбрана
@@ -149,9 +149,8 @@ bool UpsEmulator::start() {
     }
 
     // 2. Привязка SNMP-агента к порту
-    constexpr int SNMP_PORT = 161;
-    if (!m_agent.bind(SNMP_PORT)) {
-        m_lastError = "Failed to bind SNMP agent to port " + std::to_string(SNMP_PORT);
+    if (!m_agent.bind(port)) {
+        m_lastError = "Failed to bind SNMP agent to port " + std::to_string(port);
         return false;
     }
 
