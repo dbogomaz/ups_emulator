@@ -167,10 +167,21 @@ void UpsEmulator::stop() {
     if (!m_running.load()) {
         return;
     }
+
+    // Ждём, пока агент реально войдёт в run()
+    const auto start = std::chrono::steady_clock::now();
+    while (!m_agent.isRunning()) {
+        if (std::chrono::steady_clock::now() - start > std::chrono::milliseconds(500)) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
     m_agent.stop();
     if (m_thread.joinable()) {
         m_thread.join();
     }
+
     m_running.store(false);
 }
 
