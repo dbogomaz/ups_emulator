@@ -73,7 +73,6 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
 
 void UpsEmulator::fillDefaults() {
     const UpsOids& oids = m_config.oids();
-    ErrorMessage err;
 
     // ---- modelName ----
     m_store.set(oids.modelNameOID, m_config.modelName());
