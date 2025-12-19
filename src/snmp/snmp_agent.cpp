@@ -60,7 +60,7 @@ bool SnmpAgent::bind(uint16_t port) {
         return false;
     }
 
-    printf("SnmpAgent successfully bound to UDP port %u\n", port);
+    // printf("SnmpAgent successfully bound to UDP port %u\n", port);
     return true;
 }
 
@@ -72,20 +72,20 @@ bool SnmpAgent::run() {
     }
 
     // Защита от повторного запуска
-    if (m_running) {
+    if (m_running.load()) {
         printf("SnmpAgent::run(): already running\n");
         return false;
     }
 
-    m_stopRequested = false;
-    m_running = true;
+    m_stopRequested.store(false);
+    m_running.store(true);
 
     printf("SnmpAgent running...\n");
 
     // Максимальный размер SNMP пакета - хватит 4096
     uint8_t buffer[4096];
 
-    while (!m_stopRequested) {
+    while (!m_stopRequested.load()) {
         struct pollfd pfd;
         pfd.fd = m_sock;
         pfd.events = POLLIN;  // ожидаем готовность сокета к чтению
@@ -111,6 +111,11 @@ bool SnmpAgent::run() {
             continue;
         }
 
+        // Ошибка или закрытие сокета — выходим
+        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            break;
+        }
+
         // если сокет не готов к чтению — не читаем
         if (!(pfd.revents & POLLIN)) {
             continue;
@@ -134,7 +139,7 @@ bool SnmpAgent::run() {
         // ---- обработка ошибок recvfrom ----
         if (received < 0) {
             // Остановка по запросу или прерывание
-            if (m_stopRequested) {
+            if (m_stopRequested.load()) {
                 break;
             }
             // Прерывание сигналом — не ошибка
@@ -151,14 +156,27 @@ bool SnmpAgent::run() {
     }
 
     // Останавливаемся и закрываем сокет
-    m_running = false;
+
     ::close(m_sock);
     m_sock = -1;
+    m_running.store(false);
     printf("SnmpAgent stopped\n");
     return true;
 }
 
-void SnmpAgent::stop() { m_stopRequested = true; }
+void SnmpAgent::stop() {
+    // stop() имеет смысл только для запущенного агента
+    if (!m_running.load()) {
+        return;
+    }
+
+    m_stopRequested.store(true);
+
+    if (m_sock >= 0) {
+        ::shutdown(m_sock, SHUT_RDWR);
+    }
+}
+
 
 void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
@@ -198,4 +216,4 @@ bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
     return true;
 }
 
-bool SnmpAgent::isRunning() const { return m_running; }
+bool SnmpAgent::isRunning() const { return m_running.load(); }

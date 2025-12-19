@@ -47,6 +47,13 @@ add_ups_test(snmp_agent_test
     unit/snmp/test_snmp_agent_lifecycle.cpp
 )
 
+add_ups_test(ups_emulator_test
+    unit/ups/ups_emulator/test_ups_emulator_init.cpp
+    unit/ups/ups_emulator/test_ups_emulator_lifecycle.cpp 
+    unit/ups/ups_emulator/test_ups_emulator_model_selection.cpp
+    unit/ups/ups_emulator/test_ups_emulator_setters.cpp
+)
+
 add_subdirectory(googletest)
 
 if (BUILD_COVERAGE)

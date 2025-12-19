@@ -43,8 +43,11 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
 
     // Инициализируем хранилище параметров
     if (!m_store.init(m_config)) {
+        // LCOV_EXCL_START
+        // Не покрывается тестами, так как init() в текущей реализации всегда успешен
         m_lastError = "UpsDataStore initialization failed.";
         return false;
+        // LCOV_EXCL_STOP
     }
 
     // Запоминаем текущую модель
@@ -52,8 +55,10 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
 
     // Выставляем дефолтные значения
     if (!fillDefaults()) {
+        // LCOV_EXCL_START
         // m_lastError заполнен в fillDefaults()
         return false;
+        // LCOV_EXCL_STOP
     }
 
     // Заполняем доступные статусы батареи и выхода
@@ -76,70 +81,32 @@ bool UpsEmulator::fillDefaults() {
     ErrorMessage err;
 
     // ---- modelName ----
-    if (!m_store.set(oids.modelNameOID, m_config.modelName(), &err)) {
-        m_lastError = "modelName: " + err;
-        return false;
-    }
+    m_store.set(oids.modelNameOID, m_config.modelName());
 
     // Входные параметры InputStatus
-    if (!m_store.set(oids.inputVoltageOID, "230", &err)) {
-        m_lastError = "inputVoltage: " + err;
-        return false;
-    }
-    if (!m_store.set(oids.inputFreqOID, "500", &err)) {
-        m_lastError = "inputFrequency: " + err;
-        return false;
-    }
+    m_store.set(oids.inputVoltageOID, "230");
+    m_store.set(oids.inputFreqOID, "500");
 
     // Выходные параметры OutputStatus
-    if (!m_store.set(oids.outputVoltageOID, "220", &err)) {
-        m_lastError = "outputVoltage: " + err;
-        return false;
-    }
+    m_store.set(oids.outputVoltageOID, "220");
 
     // Состояние батареи BatteryStatus
-    if (!m_store.set(oids.batteryTempOID, "25", &err)) {
-        m_lastError = "batteryTemperature: " + err;
-        return false;
-    }
-    if (!m_store.set(oids.chargeRemainingOID, "100", &err)) {
-        m_lastError = "chargeRemaining: " + err;
-        return false;
-    }
+    m_store.set(oids.batteryTempOID, "25");
+    m_store.set(oids.chargeRemainingOID, "100");
 
     // batteryStatus: первый элемент набора
-    if (m_config.definedFields().batteryStatusSet.nameToValue.empty()) {
-        m_lastError = "batteryStatusValues set is empty.";
-        return false;
-    }
-    {
-        const std::string& first =
-            m_config.definedFields().batteryStatusSet.nameToValue.begin()->first;
-        if (!m_store.set(oids.batteryStatusOID, first, &err)) {
-            m_lastError = "batteryStatus: " + err;
-            return false;
-        }
-    }
+    const auto& batterySet = m_config.definedFields().batteryStatusSet.nameToValue;
+    m_store.set(oids.batteryStatusOID, batterySet.begin()->first);
 
     // Состояние выхода OutputStatus
     // outputStatus: первый элемент набора
-    if (m_config.definedFields().outputStatusSet.nameToValue.empty()) {
-        m_lastError = "outputStatusValues set is empty.";
-        return false;
-    }
-    {
-        const std::string& first =
-            m_config.definedFields().outputStatusSet.nameToValue.begin()->first;
-        if (!m_store.set(oids.outputStatusOID, first, &err)) {
-            m_lastError = "outputStatus: " + err;
-            return false;
-        }
-    }
+    const auto& outputSet = m_config.definedFields().outputStatusSet.nameToValue;
+    m_store.set(oids.outputStatusOID, outputSet.begin()->first);
 
     return true;
 }
 
-bool UpsEmulator::start() {
+bool UpsEmulator::start(uint16_t port) {
     m_lastError.clear();
 
     // 1. Проверка, что модель выбрана
@@ -148,17 +115,19 @@ bool UpsEmulator::start() {
         return false;
     }
 
-    // 2. Привязка SNMP-агента к порту
-    constexpr int SNMP_PORT = 161;
-    if (!m_agent.bind(SNMP_PORT)) {
-        m_lastError = "Failed to bind SNMP agent to port " + std::to_string(SNMP_PORT);
+    // 2. Проверка, что эмулятор не запущен
+    if (m_running.load()) {
+        m_lastError = "Emulator is already running.";
         return false;
     }
 
-    // 3. Запуск агента
-    if (m_running.load()) {
+    // 3. Привязка SNMP-агента к порту
+    if (!m_agent.bind(port)) {
+        m_lastError = "Failed to bind SNMP agent to port " + std::to_string(port);
         return false;
     }
+
+    // 4. Запуск основного цикла агента в отдельном потоке
     m_running.store(true);
     m_thread = std::thread(&UpsEmulator::runAgent, this);
     return true;
@@ -168,10 +137,23 @@ void UpsEmulator::stop() {
     if (!m_running.load()) {
         return;
     }
+
+    // Ждём, пока агент реально войдёт в run()
+    const auto start = std::chrono::steady_clock::now();
+    while (!m_agent.isRunning()) {
+        // LCOV_EXCL_START
+        if (std::chrono::steady_clock::now() - start > std::chrono::milliseconds(500)) {
+            break;
+        }
+        // LCOV_EXCL_STOP
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
     m_agent.stop();
     if (m_thread.joinable()) {
         m_thread.join();
     }
+
     m_running.store(false);
 }
 

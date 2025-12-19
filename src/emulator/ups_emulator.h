@@ -26,7 +26,7 @@ public:
     IniSectionName currentModel() const;
 
     // Запуск эмулятора
-    bool start();
+    bool start(uint16_t port = 161);
     void stop();
     bool isRunning() const;
 
