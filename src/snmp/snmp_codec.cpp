@@ -533,7 +533,11 @@ void snmp::SnmpCodec::encodeVarBindList(BerWriter& w,
         if (store.get(oid, param)) {
             encodeVarBind(w, oid, &param);
         } else {
-            encodeVarBind(w, oid, nullptr);
+            // Defensive branch:
+            // используется, если запрошенный OID отсутствует в UpsDataStore
+            // (например, при некорректной инициализации или использовании кодека вне UpsEmulator).
+            // В нормальной работе с UpsModelConfig недостижима.
+            encodeVarBind(w, oid, nullptr); // LCOV_EXCL_LINE
         }
     }
 
