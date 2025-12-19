@@ -55,7 +55,7 @@ bool SnmpAgent::bind(uint16_t port) {
     //  addr.sin_addr.s_addr = inet_addr("192.168.4.1");
     addr.sin_port = htons(port);  // принимаем пакеты с порта port
     // собственно привязываем сокет к порту адреса
-    if (::bind(m_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    if (::bind(m_sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) < 0) {
         perror("bind");
         ::close(m_sock);
         m_sock = -1;
@@ -134,7 +134,7 @@ bool SnmpAgent::run() {
             buffer, 
             sizeof(buffer), 
             0, // блокирующий recvfrom (не блокируется из-за предварительного poll)
-            (struct sockaddr*)&clientAddr, 
+            reinterpret_cast<struct sockaddr*>(&clientAddr), 
             &clientLen
         );
         // clang-format on
@@ -216,7 +216,7 @@ bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
                                  size_t size,
                                  const sockaddr_in& clientAddr,
                                  socklen_t clientLen) {
-    ssize_t sent = sendto(m_sock, data, size, 0, (const struct sockaddr*)&clientAddr, clientLen);
+    ssize_t sent = sendto(m_sock, data, size, 0, reinterpret_cast<const struct sockaddr*>(&clientAddr), clientLen);
 
     if (sent < 0) {
         perror("sendto");
