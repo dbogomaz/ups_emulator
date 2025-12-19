@@ -128,8 +128,6 @@ bool UpsModelConfig::load(const std::string& path, const IniSectionName& section
             loadedAnything = true;
             continue;
         }
-
-        continue;
     }
 
     // ---- секция не найдена или пуста ----
