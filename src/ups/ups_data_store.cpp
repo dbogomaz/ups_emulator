@@ -88,8 +88,8 @@ bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMess
                 p->value = value;  // число валидно
                 return true;
             }
-        } catch (...) {
-            // string not numeric
+        } catch (const std::exception&) {
+            // значение не число - игнорируем осознанно
         }
         // --- 2.3 Ошибка: значение не подходит ---
         if (err) *err = "Invalid value for ValueSet parameter: " + value;
