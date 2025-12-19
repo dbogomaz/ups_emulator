@@ -26,8 +26,8 @@ bool SnmpAgent::bind(uint16_t port) {
     // 0 - протокол если SOCK_DGRAM, ядро автоматически использует протокол UDP.
     // 0 - ядро выберет подходящий протокол по умолчанию
     if (m_sock < 0) {
-        perror("socket");
-        return false;
+        perror("socket");  // LCOV_EXCL_LINE
+        return false;      // LCOV_EXCL_LINE
     }
     // в результате m_sock - это идентификатор сокета т.е. дескриптор, ассоциированный с UDP-сокетом
 
@@ -40,10 +40,12 @@ bool SnmpAgent::bind(uint16_t port) {
     // размер этого значения. opt = 1 означает: включить опцию.
     int opt = 1;
     if (setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        // LCOV_EXCL_START
         perror("setsockopt");
         ::close(m_sock);
         m_sock = -1;
         return false;
+        // LCOV_EXCL_STOP
     }
 
     // 3) Привязываем сокет к порту
@@ -176,7 +178,6 @@ void SnmpAgent::stop() {
         ::shutdown(m_sock, SHUT_RDWR);
     }
 }
-
 
 void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
