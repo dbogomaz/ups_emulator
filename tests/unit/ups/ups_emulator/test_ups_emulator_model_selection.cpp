@@ -71,3 +71,19 @@ TEST_F(UpsEmulatorModelSelectionTest, SelectNonExistingModelFails) {
     EXPECT_FALSE(emulator.selectModel("NON_EXISTENT"));
     EXPECT_TRUE(emulator.currentModel().empty());
 }
+
+// Тест 2.4: Выбор модели из сломанного конфига завершается ошибкой
+TEST_F(UpsEmulatorModelSelectionTest, SelectModelFailsOnBrokenConfig) {
+    UpsEmulator emulator(data("invalid_missing_required_oid.ini"));
+    ASSERT_TRUE(emulator.ok());
+    EXPECT_FALSE(emulator.selectModel("APC"));
+    EXPECT_FALSE(emulator.lastError().empty());
+}
+
+// Тест 2.5: Выбор модели с отсутствующим обязательным OID завершается ошибкой
+TEST_F(UpsEmulatorModelSelectionTest, SelectModelFailsOnInvalidModelDefinition) {
+    UpsEmulator emulator(data("invalid_missing_required_oid.ini"));
+    ASSERT_TRUE(emulator.ok());
+    EXPECT_FALSE(emulator.selectModel("APC"));
+    EXPECT_FALSE(emulator.lastError().empty());
+}
