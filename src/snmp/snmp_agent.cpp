@@ -182,6 +182,12 @@ void SnmpAgent::stop() {
     }
 }
 
+
+// LCOV_EXCL_START
+// Методы обработки SNMP-пакета и отправки ответа
+// зависят от сетевого I/O и покрываются только интеграционными тестами.
+// В unit-тестах SnmpAgent исключены из покрытия осознанно и в трезвом уме.
+
 void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
                                   const sockaddr_in& clientAddr,
@@ -219,5 +225,7 @@ bool SnmpAgent::sendSnmpResponse(const uint8_t* data,
 
     return true;
 }
+
+// LCOV_EXCL_STOP
 
 bool SnmpAgent::isRunning() const { return m_running.load(); }
