@@ -54,12 +54,7 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
     m_currentModel = name;
 
     // Выставляем дефолтные значения
-    if (!fillDefaults()) {
-        // LCOV_EXCL_START
-        // m_lastError заполнен в fillDefaults()
-        return false;
-        // LCOV_EXCL_STOP
-    }
+    fillDefaults();
 
     // Заполняем доступные статусы батареи и выхода
     m_availableBatteryStatuses.clear();
@@ -76,7 +71,7 @@ bool UpsEmulator::selectModel(const IniSectionName& name) {
     return true;
 }
 
-bool UpsEmulator::fillDefaults() {
+void UpsEmulator::fillDefaults() {
     const UpsOids& oids = m_config.oids();
     ErrorMessage err;
 
@@ -102,8 +97,6 @@ bool UpsEmulator::fillDefaults() {
     // outputStatus: первый элемент набора
     const auto& outputSet = m_config.definedFields().outputStatusSet.nameToValue;
     m_store.set(oids.outputStatusOID, outputSet.begin()->first);
-
-    return true;
 }
 
 bool UpsEmulator::start(uint16_t port) {

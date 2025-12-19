@@ -60,7 +60,7 @@ private:
     // Основной цикл агента
     void runAgent();
 
-    bool fillDefaults();
+    void fillDefaults();
 };
 
 #endif  // UPS_EMULATOR_H
