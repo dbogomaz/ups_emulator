@@ -4,6 +4,13 @@ The format follows the principles of Keep a Changelog.
 
 ---
 
+## [2.1.1] — 2025-12-19
+### Changed
+- Доведено unit-покрытие SNMP компонентов до 100%
+- Исключены из покрытия недостижимые defensive-ветки
+
+---
+
 ### [2.1.0] — 2025-12-19
 ### Added
 - Полный набор unit-тестов для `UpsEmulator`, включая:
