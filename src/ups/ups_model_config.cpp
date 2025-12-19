@@ -179,8 +179,8 @@ bool UpsModelConfig::parseFieldValueSet(const std::string& raw, FieldValueSet& o
     out.valueToName.clear();
 
     // ----  проверка парности скобок в raw ----
-    int openCount = std::count(raw.begin(), raw.end(), '{');
-    int closeCount = std::count(raw.begin(), raw.end(), '}');
+    const std::size_t openCount = std::count(raw.begin(), raw.end(), '{');
+    const std::size_t closeCount = std::count(raw.begin(), raw.end(), '}');
     // clang-format off
     if (openCount != 1 || 
         closeCount != 1) {
