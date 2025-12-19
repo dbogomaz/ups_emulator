@@ -99,7 +99,7 @@ bool UpsDataStore::set(const Oid& oid, const UpsParameterValue& value, ErrorMess
     // ---- 3. Integer (обычный) ----
     if (p->type == UpsParameterType::Integer) {
         try {
-            std::stoi(value);
+            (void)std::stoi(value);
         } catch (...) {
             if (err) *err = "Invalid integer value: " + value;
             return false;
