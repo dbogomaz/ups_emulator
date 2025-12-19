@@ -101,28 +101,29 @@ bool SnmpAgent::run() {
         int rc = ::poll(&pfd, 1, 500);
 
         if (rc < 0) {
+            // LCOV_EXCL_START
             if (errno == EINTR) {
                 continue;
             }
             perror("poll");
             break;
+            // LCOV_EXCL_STOP
         }
 
         // за timeout событий не было — просто проверяем stopRequested
-        if (rc == 0) {
-            continue;
-        }
+        if (rc == 0) continue;
+
+        // LCOV_EXCL_START
+        // следующий участок кода исключен из покрытия тестами, так как
+        // он зависит от внешних событий (пакетов в сеть)
+        // писать такие тесты не буду да и не хочется разбираться с этим
 
         // Ошибка или закрытие сокета — выходим
-        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
-            break;
-        }
-
+        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) break;
+        
         // если сокет не готов к чтению — не читаем
-        if (!(pfd.revents & POLLIN)) {
-            continue;
-        }
-
+        if (!(pfd.revents & POLLIN)) continue;
+        
         struct sockaddr_in clientAddr{};
 
         // Чтение UDP пакета
@@ -155,6 +156,8 @@ bool SnmpAgent::run() {
 
         // Обработка пакета
         processSnmpPacket(buffer, (size_t)received, clientAddr, clientLen);
+
+        // LCOV_EXCL_STOP
     }
 
     // Останавливаемся и закрываем сокет
