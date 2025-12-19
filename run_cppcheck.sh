@@ -3,14 +3,17 @@
 set -eEuo pipefail
 
 CPPCHECK_FLAGS=(
-    --std=c++11                                       # Использовать стандарт C++11
-    "--enable=warning,style,performance,portability"  # Категории: warning, style, performance, portability
-    --suppress=missingIncludeSystem                   # Подавление предупреждений о недоступных системных include
-    --check-level=exhaustive                          # Максимальный уровень глубины проверок
-    --inconclusive                                    # Включение предположительных (inconclusive) проверок
-    --inline-suppr                                    # Разрешить inline-подавления (// cppcheck-suppress)
-    # --quiet                                           # Минимизировать вывод (только предупреждения и ошибки)
-    -Isrc                                             # Добавить src в include-path
+    --std=c++11                     # Использовать стандарт C++11
+    --enable=warning                # Реальные проблемы
+    --enable=performance            # Потенциальные узкие места
+    --enable=portability            # Переносимость
+    # --enable=style                  # Стиль — по необходимости
+    --suppress=missingIncludeSystem # Подавление предупреждений о недоступных системных include
+    --check-level=exhaustive        # Максимальный уровень глубины проверок
+    --inconclusive                  # Включение предположительных (inconclusive) проверок
+    --inline-suppr                  # Разрешить inline-подавления (// cppcheck-suppress)
+    # --quiet                         # Минимизировать вывод (только предупреждения и ошибки)
+    -Isrc                           # Добавить src в include-path
 )
 
 # Если аргументы не переданы — анализируем src
