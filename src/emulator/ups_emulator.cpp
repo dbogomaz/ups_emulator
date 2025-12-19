@@ -132,10 +132,10 @@ void UpsEmulator::stop() {
     }
 
     // Ждём, пока агент реально войдёт в run()
-    const auto start = std::chrono::steady_clock::now();
+    const auto waitStartTime = std::chrono::steady_clock::now();
     while (!m_agent.isRunning()) {
         // LCOV_EXCL_START
-        if (std::chrono::steady_clock::now() - start > std::chrono::milliseconds(500)) {
+        if (std::chrono::steady_clock::now() - waitStartTime > std::chrono::milliseconds(500)) {
             break;
         }
         // LCOV_EXCL_STOP
