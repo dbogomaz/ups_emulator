@@ -19,6 +19,23 @@ TEST_F(UpsEmulatorLifecycleTest, StartWithoutModelFails) {
     EXPECT_FALSE(emulator.isRunning());
 }
 
+// Тест 1.2: Запуск с недоступным портом невозможен
+// NOTE: Тест зависит от прав процесса (порт <1024).
+// При запуске с привилегиями может быть пропущен.
+TEST_F(UpsEmulatorLifecycleTest, StartWithUnavailablePortFails) {
+    UpsEmulator emulator(data("valid_single_model.ini"));
+    ASSERT_TRUE(emulator.ok());
+    ASSERT_TRUE(emulator.selectModel("APC"));
+    const bool started = emulator.start(80);
+    if (started) {
+        emulator.stop();  // возврат к исходному состоянию
+        GTEST_SKIP() << "Port 80 is available in this environment (privileged run)";
+    }
+    EXPECT_FALSE(started);
+    EXPECT_FALSE(emulator.isRunning());
+}
+
+
 // ============================================================
 // Part 2 — Start / Stop lifecycle
 // ============================================================
