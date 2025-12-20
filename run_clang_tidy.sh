@@ -101,11 +101,24 @@ set_clang_tidy_flags() {
 
 # ---- Определение целевых файлов для анализа ----
 set_targets() {
-    # Если аргументы не переданы — анализируем все .cpp в src
     TARGETS=()
+
+    # Если файлы переданы аргументами — используем их
+    if [[ $# -gt 0 ]]; then
+        for file in "$@"; do
+            if [[ ! -f "$file" ]]; then
+                echo "ERROR: File not found: $file"
+                exit 1
+            fi
+            TARGETS+=("$file")
+        done
+        return
+    fi
+
+    # Иначе — анализируем все .cpp в src
     while IFS= read -r file; do
         TARGETS+=("$file")
-    done < <(find src -name '*.cpp')
+    done < <(find src -type f -name '*.cpp')
 }
 
 # --- Запуск clang-tidy ---
