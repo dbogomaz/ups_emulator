@@ -5,6 +5,12 @@ set -eEuo pipefail
 # ---- Установка конфигурации ----
 set_config() {
     BUILD_DIR=build
+
+    # Режим clang-tidy:
+    #   light   — минимальный, почти без шума (по умолчанию)
+    #   medium  — расширенный анализ
+    #   strict  — жёсткий аудит
+    CLANG_TIDY_MODE=${CLANG_TIDY_MODE:-light}
 }
 
 # ---- Проверка условий ----
@@ -86,14 +92,33 @@ set_clang_tidy_checks() {
     # misc-*         — намеренно отключены (слишком много ложных срабатываний)
 }
 
+# ---- Выбор профиля clang-tidy по режиму ----
+select_clang_tidy_profile() {
+    case "${CLANG_TIDY_MODE}" in
+        light)
+            CLANG_TIDY_CHECKS=("${CLANG_TIDY_CHECKS_LIGHT[@]}")
+            ;;
+        medium)
+            CLANG_TIDY_CHECKS=("${CLANG_TIDY_CHECKS_MEDIUM[@]}")
+            ;;
+        strict)
+            CLANG_TIDY_CHECKS=("${CLANG_TIDY_CHECKS_STRICT[@]}")
+            ;;
+        *)
+            echo "ERROR: Unknown CLANG_TIDY_MODE='${CLANG_TIDY_MODE}'"
+            echo "Valid values: light | medium | strict"
+            exit 1
+            ;;
+    esac
+
+
+    echo -e "\033[36mclang-tidy mode: ${CLANG_TIDY_MODE}\033[0m"
+}
+
 # --- Формирование флагов для clang-tidy
 set_clang_tidy_flags() {
     CLANG_TIDY_FLAGS=(
-        # --- Выбрать ОДИН профиль ---
-        "-checks=$(IFS=,; echo "${CLANG_TIDY_CHECKS_LIGHT[*]}")"
-        # "-checks=$(IFS=,; echo "${CLANG_TIDY_CHECKS_MEDIUM[*]}")"
-        # "-checks=$(IFS=,; echo "${CLANG_TIDY_CHECKS_STRICT[*]}")"
-
+        "-checks=$(IFS=,; echo "${CLANG_TIDY_CHECKS[*]}")"
         "-warnings-as-errors="
         "-header-filter=^src/.*"
     )
@@ -133,6 +158,7 @@ main() {
     set_config
     check_environment
     set_clang_tidy_checks
+    select_clang_tidy_profile
     set_clang_tidy_flags
     set_targets "$@"
     run_clang_tidy
