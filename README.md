@@ -23,7 +23,7 @@
 src/
   main.cpp                      — точка входа (CLI)
   emulator/                     — логика эмуляции UPS
-  snmp/                         — SNMP-агент, кодек и BER-энкодер
+  snmp/                         — SNMP-агент, кодек, BER-энкодер и логика обработки запросов
   ups/                          — модели UPS, параметры, OID, value-sets
   utils/                        — утилиты (fs_utils, string_utils, ini_section_reader)
 gui/
@@ -138,6 +138,47 @@ ctest --output-on-failure --test-dir build
 ```
 
 Результаты автоматически открываются в браузере.
+
+## Статический анализ кода
+
+В проекте используются инструменты статического анализа для повышения качества и надёжности кода.
+
+### clang-tidy
+
+Для запуска clang-tidy используется скрипт:
+
+```bash
+./run_clang_tidy.sh
+```
+Поддерживаются режимы анализа:
+
+- `light` — минимальный, малошумный анализ (по умолчанию)
+- `medium` — расширенный анализ
+- `strict` — строгий аудит кода
+
+Пример запуска:
+
+```bash
+CLANG_TIDY_MODE=medium ./run_clang_tidy.sh
+```
+
+Возможен анализ отдельных файлов:
+
+```bash
+./run_clang_tidy.sh src/snmp/snmp_agent.cpp
+```
+
+⚠️ На `macOS` требуется предварительная генерация `compile_commands.json` с указанием `CMAKE_OSX_SYSROOT` (подробности см. комментарии в скрипте).
+
+### cppcheck
+
+Для анализа с помощью cppcheck используется скрипт:
+
+```bash
+./run_cppcheck.sh
+```
+
+
 
 ## Конфигурация моделей UPS
 
