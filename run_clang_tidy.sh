@@ -1,5 +1,44 @@
 #!/bin/bash
 # @file run_clang_tidy.sh
+
+#
+# Назначение:
+#   Запуск clang-tidy для проекта ups_emulator с использованием
+#   compile_commands.json, с поддержкой нескольких режимов анализа.
+#
+# ВАЖНО (macOS):
+#   Перед первым запуском clang-tidy на macOS ОБЯЗАТЕЛЬНО выполнить:
+#     rm -rf build
+#     cmake -S . -B build \
+#       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+#       -DCMAKE_OSX_SYSROOT="$(xcrun --show-sdk-path)"
+#     cmake --build build
+#
+# ============================================================================
+# РЕЖИМЫ РАБОТЫ
+#   light   (по умолчанию)
+#     Минимальный, малошумный анализ реальных дефектов.
+#   medium
+#     Расширенный анализ (bugprone + часть performance).
+#   strict
+#     Жёсткий аудит (много предупреждений, использовать осознанно).
+#
+# ============================================================================
+# ПРИМЕРЫ ЗАПУСКА
+#   1) Запуск в режиме light (по умолчанию):
+#       ./run_clang_tidy.sh
+#   2) Запуск в режиме medium:
+#       CLANG_TIDY_MODE=medium ./run_clang_tidy.sh
+#   3) Запуск в режиме strict:
+#       CLANG_TIDY_MODE=strict ./run_clang_tidy.sh
+#   4) Анализ одного файла (любой режим):
+#       ./run_clang_tidy.sh src/main.cpp
+#
+#       CLANG_TIDY_MODE=medium ./run_clang_tidy.sh src/snmp/snmp_agent.cpp
+#
+# ============================================================================
+#
+
 set -eEuo pipefail
 
 # ---- Установка конфигурации ----
