@@ -24,7 +24,14 @@ YELLOW="\033[0;33m"
 RESET="\033[0m"
 
 if [[ "$WARN_COUNT" -eq 0 ]]; then
-    echo -e "${GREEN}Doxygen: warnings = 0${RESET}"
+    printf '%b\n' "${GREEN}Doxygen: warnings = 0${RESET}"
 else
-    echo -e "${YELLOW}Doxygen: warnings = ${WARN_COUNT} (details in ${WARN_FILE})${RESET}"
+    printf '%b\n' "${YELLOW}Doxygen: warnings = ${WARN_COUNT} (details in ${WARN_FILE})${RESET}"
+fi
+
+printf 'Opening documentation: %s\n' "html/index.html"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    open html/index.html >/dev/null 2>&1 || true
+else
+    xdg-open html/index.html >/dev/null 2>&1 || true
 fi
