@@ -2,8 +2,10 @@
 #define SNMP_AGENT_H
 
 #include <netinet/in.h>
+
 #include <cstddef>
 #include <cstdint>
+#include <atomic>
 
 #include "snmp_codec.h"
 #include "ups_data_store.h"
@@ -39,8 +41,8 @@ private:
 
 private:
     int m_sock{ -1 };
-    bool m_running{ false };        // run() сейчас выполняется
-    bool m_stopRequested{ false };  // запрошена остановка
+    std::atomic<bool> m_running{ false };        // run() сейчас выполняется
+    std::atomic<bool> m_stopRequested{ false };  // запрошена остановка
 
     UpsDataStore* m_store{ nullptr };
     snmp::SnmpCodec m_codec{};

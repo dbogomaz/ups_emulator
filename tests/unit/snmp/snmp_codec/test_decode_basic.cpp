@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "snmp_codec.h"
 
 using namespace snmp;
@@ -16,6 +17,7 @@ protected:
 // Пример запроса с одним OID:
 TEST_F(SnmpCodecTest, DecodeOneOid) {
     // SNMPv1 GET request with OID: 1.3.6.1.2
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x25, // SEQUENCE length 37
             0x02, 0x01, 0x00, // version
@@ -29,6 +31,7 @@ TEST_F(SnmpCodecTest, DecodeOneOid) {
                         0x06, 0x04, 0x2b, 0x06, 0x01, 0x02, // OID 1.3.6.1.2 length 4
                         0x05, 0x00 // Value = NULL
     };
+    // clang-format on
     bool ok = codec.decodeGetRequest(data, sizeof(data), req, &err);
     ASSERT_TRUE(ok) << "Decode failed: " << err;
     ASSERT_EQ(req.community, "public") << "Wrong community string: " << req.community;
@@ -38,8 +41,9 @@ TEST_F(SnmpCodecTest, DecodeOneOid) {
 }
 
 // Пример запроса с двумя OID'ами:
-TEST_F(SnmpCodecTest, DecodeTwoOids){
+TEST_F(SnmpCodecTest, DecodeTwoOids) {
     // SNMPv1 GET request with OIDs: 1.3.6 and 1.3.6.1
+    // clang-format off
     uint8_t data[] = {
         0x30, 0x2f, // SEQUENCE length 47
             0x02, 0x01, 0x00, // version
@@ -57,6 +61,7 @@ TEST_F(SnmpCodecTest, DecodeTwoOids){
                         0x05, 0x00 // Value = NULL
  
     };
+    // clang-format on
     bool ok = codec.decodeGetRequest(data, sizeof(data), req, &err);
     ASSERT_TRUE(ok) << "Decode failed: " << err;
     ASSERT_EQ(req.community, "public") << "Wrong community string: " << req.community;

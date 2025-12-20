@@ -20,10 +20,10 @@ enum class SnmpVersion : uint8_t { V_1 = 0, V_2C = 1 };
 // Parsed SNMP GET Request (SNMPv1, v2c)
 // ------------------------------------------------------------
 struct SnmpGetRequest {
-    int requestId{0};                       // request-id
-    SnmpVersion version{SnmpVersion::V_1};  // SNMP version
-    std::string community{};                // community string ("public")
-    std::vector<Oid> oids;                  // list of OIDs from varbind-list
+    int requestId{ 0 };                       // request-id
+    SnmpVersion version{ SnmpVersion::V_1 };  // SNMP version
+    std::string community{};                  // community string ("public")
+    std::vector<Oid> oids;                    // list of OIDs from varbind-list
 };
 
 // ------------------------------------------------------------
@@ -110,20 +110,13 @@ private:
 
 class SnmpCodecTestAccess {
 public:
-    static void encodeInteger(SnmpCodec& c, BerWriter& w, int v) {
-        c.encodeInteger(w, v);
-    }
+    static void encodeInteger(SnmpCodec& c, BerWriter& w, int v) { c.encodeInteger(w, v); }
     static void encodeOctetString(SnmpCodec& c, BerWriter& w, const std::string& s) {
         c.encodeOctetString(w, s);
     }
-    static void encodeNull(SnmpCodec& c, BerWriter& w) {
-        c.encodeNull(w);
-    }
-    static void encodeOid(SnmpCodec& c, BerWriter& w, const Oid& oid) {
-        c.encodeOid(w, oid);
-    }
-    static void encodeVarBind(SnmpCodec& c, BerWriter& w, const Oid& oid,
-                              const UpsParameter* p) {
+    static void encodeNull(SnmpCodec& c, BerWriter& w) { c.encodeNull(w); }
+    static void encodeOid(SnmpCodec& c, BerWriter& w, const Oid& oid) { c.encodeOid(w, oid); }
+    static void encodeVarBind(SnmpCodec& c, BerWriter& w, const Oid& oid, const UpsParameter* p) {
         c.encodeVarBind(w, oid, p);
     }
     static void encodeVarBindList(SnmpCodec& c,
@@ -139,7 +132,6 @@ public:
         c.encodeGetResponsePdu(w, req, store);
     }
 };
-
 
 }  // namespace snmp
 

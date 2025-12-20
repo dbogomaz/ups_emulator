@@ -14,9 +14,14 @@ protected:
     UpsDataStore store;
     SnmpAgent agent{ &store };
     const uint16_t testPort = 1161;
-    void startAgentAsync(std::thread& t) {
-        t = std::thread([this]() { agent.run(); });
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    void waitUntilRunning(std::chrono::milliseconds timeout = std::chrono::milliseconds(500)) {
+        const auto start = std::chrono::steady_clock::now();
+        while (!agent.isRunning()) {
+            if (std::chrono::steady_clock::now() - start > timeout) {
+                FAIL() << "Timeout waiting for SnmpAgent to enter running state";
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
     }
 };
 
@@ -26,9 +31,7 @@ protected:
 // ============================================================
 
 // Тест 1.1: Агент сразу после создания не запущен
-TEST_F(SnmpAgentTest, Initial_1_NotRunning) {
-    EXPECT_FALSE(agent.isRunning());
-}
+TEST_F(SnmpAgentTest, Initial_1_NotRunning) { EXPECT_FALSE(agent.isRunning()); }
 
 // Тест 1.2: Запуск без bind() невозможен
 TEST_F(SnmpAgentTest, Initial_2_RunWithoutBindFails) {
@@ -71,8 +74,8 @@ TEST_F(SnmpAgentTest, Bind_3_DoesNotStartAgent) {
 // Тест 3.1: run() после bind() переводит агент в состояние running
 TEST_F(SnmpAgentTest, Run_1_StartsAfterBind) {
     ASSERT_TRUE(agent.bind(testPort));
-    std::thread t;
-    startAgentAsync(t);
+    std::thread t([this]() { agent.run(); });
+    waitUntilRunning();
     EXPECT_TRUE(agent.isRunning());
     agent.stop();
     t.join();
@@ -82,8 +85,8 @@ TEST_F(SnmpAgentTest, Run_1_StartsAfterBind) {
 // Тест 3.2: stop() корректно останавливает работающий агент
 TEST_F(SnmpAgentTest, Run_2_StopStopsAgent) {
     ASSERT_TRUE(agent.bind(testPort));
-    std::thread t;
-    startAgentAsync(t);
+    std::thread t([this]() { agent.run(); });
+    waitUntilRunning();
     ASSERT_TRUE(agent.isRunning());
     agent.stop();
     t.join();
@@ -94,8 +97,8 @@ TEST_F(SnmpAgentTest, Run_2_StopStopsAgent) {
 TEST_F(SnmpAgentTest, Run_3_RunStopRunWithRebindIsAllowed) {
     ASSERT_TRUE(agent.bind(testPort));
     // Первый запуск
-    std::thread t1;
-    startAgentAsync(t1);
+    std::thread t1([this]() { agent.run(); });
+    waitUntilRunning();
     ASSERT_TRUE(agent.isRunning());
     agent.stop();
     t1.join();
@@ -103,8 +106,8 @@ TEST_F(SnmpAgentTest, Run_3_RunStopRunWithRebindIsAllowed) {
     // Повторный bind - важен при текущем API
     ASSERT_TRUE(agent.bind(testPort));
     // Второй запуск
-    std::thread t2;
-    startAgentAsync(t2);
+    std::thread t2([this]() { agent.run(); });
+    waitUntilRunning();
     EXPECT_TRUE(agent.isRunning());
     agent.stop();
     t2.join();
@@ -121,8 +124,8 @@ TEST_F(SnmpAgentTest, Run_3_RunStopRunWithRebindIsAllowed) {
 // Тест 4.1: Повторный вызов run() при уже работающем агенте запрещён
 TEST_F(SnmpAgentTest, Misuse_1_RunWhileAlreadyRunningFails) {
     ASSERT_TRUE(agent.bind(testPort));
-    std::thread t;
-    startAgentAsync(t);
+    std::thread t([this]() { agent.run(); });
+    waitUntilRunning();
     ASSERT_TRUE(agent.isRunning());
     // Повторный run() должен быть отклонён
     EXPECT_FALSE(agent.run());
@@ -134,24 +137,24 @@ TEST_F(SnmpAgentTest, Misuse_1_RunWhileAlreadyRunningFails) {
 
 // Тест 4.2: Вызов stop() до run() безопасен
 TEST_F(SnmpAgentTest, Misuse_2_StopBeforeRunIsSafe) {
-    ASSERT_TRUE(agent.bind(testPort));
+    ASSERT_TRUE(agent.bind(testPort)) << "bind() failed";
     // stop() до run() не должен ломать состояние
     agent.stop();
-    EXPECT_FALSE(agent.isRunning());
+    EXPECT_FALSE(agent.isRunning()) << "Agent should not be running after stop() before run()";
     // После этого run() всё ещё возможен
-    std::thread t;
-    startAgentAsync(t);
-    EXPECT_TRUE(agent.isRunning());
+    std::thread t([this]() { agent.run(); });
+    waitUntilRunning();
+    EXPECT_TRUE(agent.isRunning()) << "Agent should be running after run()";
     agent.stop();
     t.join();
-    EXPECT_FALSE(agent.isRunning());
+    EXPECT_FALSE(agent.isRunning()) << "Agent should not be running after stop()";
 }
 
 // Тест 4.3: Повторный вызов stop() безопасен
 TEST_F(SnmpAgentTest, Misuse_3_StopMultipleTimesIsSafe) {
     ASSERT_TRUE(agent.bind(testPort));
-    std::thread t;
-    startAgentAsync(t);
+    std::thread t([this]() { agent.run(); });
+    waitUntilRunning();
     ASSERT_TRUE(agent.isRunning());
     // Многократные stop()
     agent.stop();

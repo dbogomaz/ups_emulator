@@ -6,7 +6,7 @@ class UpsModelConfigErrorTest : public ::testing::Test {
 protected:
     UpsModelConfig cfg;
     std::string dataDir = std::string(TEST_DATA_DIR) + "/ups_model_config";
-
+    
     // Полный путь к файлу тестовых данных
     std::string data(const std::string& name) const { return dataDir + "/" + name; }
 
@@ -29,7 +29,7 @@ TEST_F(UpsModelConfigErrorTest, FileNotFound) {
 }
 // Отсутствующая секция
 TEST_F(UpsModelConfigErrorTest, SectionNotFound) {
-    loadExpectFail("config/ups_models.ini", "NO_SUCH_SECTION");
+    loadExpectFail(std::string(TEST_DATA_DIR) + "/ups_models.ini", "NO_SUCH_SECTION");
     EXPECT_NE(cfg.lastError().find("not found"), std::string::npos);
 }
 
