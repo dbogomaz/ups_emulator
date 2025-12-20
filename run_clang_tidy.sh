@@ -90,11 +90,10 @@ CLANG_TIDY_FLAGS=(
 )
 
 # Если аргументы не переданы — анализируем все .cpp в src
-if [[ $# -eq 0 ]]; then
-    mapfile -t TARGETS < <(find src -name '*.cpp')
-else
-    TARGETS=("$@")
-fi
+TARGETS=()
+while IFS= read -r file; do
+    TARGETS+=("$file")
+done < <(find src -name '*.cpp')
 
 # Запуск clang-tidy
 clang-tidy \
