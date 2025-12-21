@@ -53,28 +53,29 @@ private:
     UpsEmulator m_emulator;  ///< Экземпляр эмулятора UPS.
 
     // InputStatus widgets
-    QSpinBox* m_inputVoltage_SpinBox{ nullptr };
-    QSpinBox* m_inputFreq_SpinBox{ nullptr };
+    QSpinBox* m_inputVoltage_SpinBox{ nullptr };  ///< Спинбокс для напряжения входа.
+    QSpinBox* m_inputFreq_SpinBox{ nullptr };     ///< Спинбокс для частоты входа.
     // BatteryStatus widgets
-    QSpinBox* m_chargeRemaining_SpinBox{ nullptr };
-    QSpinBox* m_batteryTemp_SpinBox{ nullptr };
-    QComboBox* m_batteryStatus_ComboBox{ nullptr };
+    QSpinBox* m_chargeRemaining_SpinBox{ nullptr };  ///< Спинбокс для оставшегося заряда батареи.
+    QSpinBox* m_batteryTemp_SpinBox{ nullptr };      ///< Спинбокс для температуры батареи.
+    QComboBox* m_batteryStatus_ComboBox{ nullptr };  ///< Комбобокс для статуса батареи.
     // OutputStatus widgets
-    QSpinBox* m_outputVoltage_SpinBox{ nullptr };
-    QComboBox* m_outputStatus_ComboBox{ nullptr };
+    QSpinBox* m_outputVoltage_SpinBox{ nullptr };   ///< Спинбокс для напряжения выхода.
+    QComboBox* m_outputStatus_ComboBox{ nullptr };  ///< Комбобокс для статуса выхода.
     // Кнопки управления
-    QPushButton* m_run_PushButton{ nullptr };
-    QPushButton* m_stop_PushButton{ nullptr };
-    QPushButton* m_exit_PushButton{ nullptr };
+    QPushButton* m_run_PushButton{ nullptr };   ///< Кнопка "Run" для запуска эмулятора.
+    QPushButton* m_stop_PushButton{ nullptr };  ///< Кнопка "Stop" для остановки эмулятора.
+    QPushButton* m_exit_PushButton{ nullptr };  ///< Кнопка "Exit" для выхода из приложения.
     // Меню
-    QMenu* m_fileMenu{ nullptr };
-    QMenu* m_modelMenu{ nullptr };
-    QAction* m_exitAction{ nullptr };
-    QActionGroup* m_modelActionGroup{ nullptr };
+    QMenu* m_fileMenu{ nullptr };                 ///< Меню "File".
+    QMenu* m_modelMenu{ nullptr };                ///< Меню "Model".
+    QAction* m_exitAction{ nullptr };             ///< Действие "Exit" в меню "File".
+    QActionGroup* m_modelActionGroup{ nullptr };  ///< Группа действий для выбора модели.
 
     /// @brief Обновляет элементы управления UI в соответствии с состоянием эмулятора.
     void updateRunStateUi();
     /// @brief Реализует выбор модели устройства.
+    /// @param action Действие, соответствующее выбранной модели.
     void modelSelected(QAction* action);
     /// @brief Обрабатывает нажатие кнопки "Run".
     void runPushButtonClicked();
