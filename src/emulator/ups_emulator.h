@@ -53,6 +53,7 @@ public:
 
     /**
      * @brief Возвращает список доступных моделей UPS.
+     * @return Список имён секций INI-файла моделей UPS.
      */
     const std::vector<IniSectionName>& availableModels() const;
 
@@ -66,16 +67,19 @@ public:
 
     /**
      * @brief Возвращает имя текущей модели UPS.
+     * @return Имя секции INI-файла текущей модели UPS.
      */
     IniSectionName currentModel() const;
 
     /**
      * @brief Возвращает список доступных статусов батареи.
+     * @return Список строковых представлений статусов батареи.
      */
     const std::vector<std::string>& availableBatteryStatuses() const;
 
     /**
      * @brief Возвращает список доступных статусов выхода.
+     * @return Список строковых представлений статусов выхода.
      */
     const std::vector<std::string>& availableOutputStatuses() const;
 
@@ -94,16 +98,19 @@ public:
 
     /**
      * @brief Проверяет, запущен ли эмулятор.
+     * @return true, если эмулятор запущен.
      */
     bool isRunning() const;
 
     /**
      * @brief Возвращает признак корректной инициализации эмулятора.
+     * @return true, если эмулятор инициализирован без ошибок.
      */
     bool ok() const;
 
     /**
      * @brief Возвращает описание последней ошибки.
+     * @return Текст последней ошибки.
      */
     const ErrorMessage& lastError() const;
 
