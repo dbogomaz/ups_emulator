@@ -9,8 +9,6 @@
 #include "ups_data_store.h"
 #include "ups_types.h"
 
-namespace snmp {
-
 // ------------------------------------------------------------
 // SNMP Version
 // ------------------------------------------------------------
@@ -132,7 +130,5 @@ public:
         c.encodeGetResponsePdu(w, req, store);
     }
 };
-
-}  // namespace snmp
 
 #endif  // SNMP_CODEC_H

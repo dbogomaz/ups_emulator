@@ -4,8 +4,6 @@
 #include "snmp_codec.h"
 #include "ups_data_store.h"
 
-using namespace snmp;
-
 class SnmpEncoderTest : public ::testing::Test {
 protected:
     std::vector<uint8_t> buf;

@@ -2,8 +2,6 @@
 
 #include "snmp_codec.h"
 
-using namespace snmp;
-
 class SnmpCodecDecodeErrors : public ::testing::Test {
 protected:
     SnmpCodec codec;

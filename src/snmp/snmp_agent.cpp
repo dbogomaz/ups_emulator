@@ -8,8 +8,6 @@
 #include <cerrno>  // errno, EINTR
 #include <cstdio>  // printf(), perror()
 
-using namespace snmp;
-
 SnmpAgent::SnmpAgent(UpsDataStore* store) : m_store(store) {}
 
 bool SnmpAgent::bind(uint16_t port) {
@@ -192,7 +190,7 @@ void SnmpAgent::processSnmpPacket(const uint8_t* data,
                                   size_t size,
                                   const sockaddr_in& clientAddr,
                                   socklen_t clientLen) {
-    snmp::SnmpGetRequest req;
+    SnmpGetRequest req;
     std::string err;
 
     // 1. Декодирование запроса
