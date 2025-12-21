@@ -1,34 +1,57 @@
+/**
+ * @file ups_types.h
+ * @brief Базовые типы доменной модели UPS.
+ *
+ * Содержит фундаментальные типы и перечисления,
+ * используемые в подсистеме эмуляции ИБП.
+ */
 #ifndef UPS_TYPES_H
 #define UPS_TYPES_H
 
 #include <string>
 
-// ------------------------------------------------------------------
-// Базовые типы подсистемы UPS
-// ------------------------------------------------------------------
+/// @ingroup ups
 
-// SNMP OID (идентификатор параметра)
+/**
+ * @brief SNMP OID (идентификатор параметра).
+ */
 using Oid = std::string;
 
-// Значение параметра UPS (храним в строковом виде)
+/**
+ * @brief Значение параметра UPS (хранится в строковом виде).
+ */
 using UpsParameterValue = std::string;
 
-// Имя параметра UPS (например "batteryStatus")
+/**
+ * @brief Имя параметра UPS (например, "batteryStatus").
+ */
 using UpsParameterName = std::string;
 
-// Название модели UPS
+/**
+ * @brief Название модели UPS.
+ */
 using ModelName = std::string;
 
-// Имя секции INI-файла
+/**
+ * @brief Имя секции INI-файла.
+ */
 using IniSectionName = std::string;
 
-// Сообщение об ошибке
+/**
+ * @brief Сообщение об ошибке.
+ */
 using ErrorMessage = std::string;
 
-// Тип параметра UPS
+/**
+ * @enum UpsParameterType
+ * @brief Тип параметра UPS.
+ */
 enum class UpsParameterType {
-    Integer,  // Числовой параметр (напряжение, частота, температура)
-    String    // Текстовый параметр (имя модели)
+    /// Числовой параметр (напряжение, частота, температура).
+    Integer,
+
+    /// Текстовый параметр (например, имя модели).
+    String
 };
 
 #endif  // UPS_TYPES_H
