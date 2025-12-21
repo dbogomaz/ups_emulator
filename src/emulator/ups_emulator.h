@@ -108,20 +108,52 @@ public:
     const ErrorMessage& lastError() const;
 
     /**
-     * @brief Устанавливает значения параметров UPS.
-     *
-     * Используется внешними интерфейсами (CLI, GUI)
-     * для изменения текущего состояния эмулируемого устройства.
-     *
+     * @brief Устанавливает входное напряжение UPS.
+     * @param v Напряжение в вольтах.
      * @return true при успешной установке значения.
      */
-
     bool setInputVoltage(int v);
+
+    /**
+     * @brief Устанавливает входную частоту UPS.
+     * @param hz Частота в герцах.
+     * @return true при успешной установке значения.
+     */
     bool setInputFrequency(int hz);
+
+    /**
+     * @brief Устанавливает уровень заряда батареи.
+     * @param percent Процент заряда (0–100).
+     * @return true при успешной установке значения.
+     */
     bool setChargeRemaining(int percent);
+
+    /**
+     * @brief Устанавливает температуру батареи.
+     * @param celsius Температура в градусах Цельсия.
+     * @return true при успешной установке значения.
+     */
     bool setBatteryTemperature(int celsius);
+
+    /**
+     * @brief Устанавливает статус батареи.
+     * @param status Строковое представление статуса.
+     * @return true при успешной установке значения.
+     */
     bool setBatteryStatus(const std::string& status);
+
+    /**
+     * @brief Устанавливает выходное напряжение UPS.
+     * @param v Напряжение в вольтах.
+     * @return true при успешной установке значения.
+     */
     bool setOutputVoltage(int v);
+
+    /**
+     * @brief Устанавливает статус выходного сигнала.
+     * @param status Строковое представление статуса.
+     * @return true при успешной установке значения.
+     */
     bool setOutputStatus(const std::string& status);
 
 private:
