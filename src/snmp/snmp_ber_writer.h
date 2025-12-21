@@ -32,7 +32,12 @@
  */
 class BerWriter {
 public:
-    // Создаёт writer, который пишет в переданный буфер.
+    /**
+     * @brief Создаёт BER-writer, записывающий данные в заданный буфер.
+     *
+     * @param out Внешний буфер, в который будет производиться запись.
+     *            Буфер должен существовать на всём протяжении жизни BerWriter.
+     */
     explicit BerWriter(std::vector<uint8_t>& out);
 
     // --------------------------------------------------------
@@ -100,12 +105,14 @@ public:
     void endSequence(std::size_t anchorOffset);
 
     /**
-     * @brief Возвращает текущий размер выходного буфера.
+     * @brief Возвращает текущий размер сформированных BER-данных.
+     *
+     * @return Размер данных в байтах
      */
-    std::size_t size() const { return m_out.size(); }
+    size_t size() const;
 
 private:
-    std::vector<uint8_t>& m_out; ///< Ссылка на выходной буфер.
+    std::vector<uint8_t>& m_out;  ///< Ссылка на выходной буфер.
 };
 
 #endif  // SNMP_BER_WRITER_H
