@@ -1,3 +1,15 @@
+/**
+ * @file snmp_codec.h
+ * @brief ASN.1 BER кодек для SNMP v1 и v2c.
+ *
+ * Содержит структуры и классы, отвечающие за:
+ * - декодирование SNMP GET-запросов;
+ * - формирование SNMP GET-RESPONSE сообщений;
+ * - низкоуровневую работу с ASN.1 BER.
+ *
+ * Кодек не выполняет сетевых операций и не хранит состояние,
+ * а используется SNMP-агентом как чистый компонент обработки данных.
+ */
 #ifndef SNMP_CODEC_H
 #define SNMP_CODEC_H
 
@@ -9,46 +21,81 @@
 #include "ups_data_store.h"
 #include "ups_types.h"
 
-// ------------------------------------------------------------
-// SNMP Version
-// ------------------------------------------------------------
-enum class SnmpVersion : uint8_t { V_1 = 0, V_2C = 1 };
+/// @ingroup snmp
 
-// ------------------------------------------------------------
-// Parsed SNMP GET Request (SNMPv1, v2c)
-// ------------------------------------------------------------
-struct SnmpGetRequest {
-    int requestId{ 0 };                       // request-id
-    SnmpVersion version{ SnmpVersion::V_1 };  // SNMP version
-    std::string community{};                  // community string ("public")
-    std::vector<Oid> oids;                    // list of OIDs from varbind-list
+/**
+ * @enum SnmpVersion
+ * @brief Поддерживаемые версии протокола SNMP.
+ */
+enum class SnmpVersion : uint8_t {
+    V_1 = 0,  ///< SNMP версии 1
+    V_2C = 1  ///< SNMP версии 2c
 };
 
-// ------------------------------------------------------------
-// Класс - обертка для тестирования приватных методов
-// ------------------------------------------------------------
-class SnmpCodecTestAccess;
+/**
+ * @struct SnmpGetRequest
+ * @brief Представление разобранного SNMP GET-запроса.
+ *
+ * Используется как результат декодирования входного SNMP-запроса
+ * и передаётся в кодек для формирования ответа.
+ */
+struct SnmpGetRequest {
+    int requestId{ 0 };                       ///< Идентификатор SNMP-запроса.
+    SnmpVersion version{ SnmpVersion::V_1 };  ///< Версия протокола SNMP.
+    std::string community{};                  ///< Community string (например, "public").
+    std::vector<Oid> oids;                    ///< Список OID из varbind-list.
+};
 
-// ------------------------------------------------------------
-// SNMP Codec (ASN.1 BER encoder/decoder for SNMP v1, v2c)
-// ------------------------------------------------------------
+/**
+ * @class SnmpCodec
+ * @brief Кодек SNMP-сообщений (ASN.1 BER).
+ *
+ * Класс отвечает за:
+ * - декодирование SNMP GET-запросов (v1, v2c);
+ * - формирование SNMP GET-RESPONSE сообщений;
+ * - низкоуровневую работу с ASN.1 BER структурами.
+ *
+ * SnmpCodec не выполняет сетевых операций и не хранит состояние
+ * между вызовами. Он используется SNMP-агентом как компонент
+ * преобразования данных.
+ */
 class SnmpCodec {
 public:
-    // Decode SNMP GET Request (SNMP v1, v2c)
+    /**
+     * @brief Декодирует SNMP GET-запрос.
+     *
+     * @param data Указатель на входной буфер с SNMP-сообщением.
+     * @param size Размер входного буфера в байтах.
+     * @param outReq Структура для записи разобранного запроса.
+     * @param err Указатель для записи сообщения об ошибке (опционально).
+     *
+     * @return true, если запрос успешно декодирован.
+     */
     bool decodeGetRequest(const uint8_t* data,
                           size_t size,
                           SnmpGetRequest& outReq,
                           ErrorMessage* err = nullptr);
 
-    // Encode SNMP GET-RESPONSE (SNMP v1/v2c)
+    /**
+     * @brief Формирует SNMP GET-RESPONSE сообщение.
+     *
+     * @param req Исходный SNMP GET-запрос.
+     * @param store Хранилище данных UPS.
+     * @param out Буфер для сформированного SNMP-ответа.
+     *
+     * @return true, если ответ успешно сформирован.
+     */
     bool encodeGetResponse(const SnmpGetRequest& req,
                            const UpsDataStore& store,
                            std::vector<uint8_t>& out);
 
 private:
-    // ============================================================
-    // ASN.1 TAG DEFINITIONS
-    // ============================================================
+    /**
+     * @brief ASN.1 BER теги, используемые при кодировании и декодировании SNMP.
+     *
+     * Константы определяют типы ASN.1 элементов и SNMP PDU, используемых
+     * кодеком.
+     */
     enum : uint8_t {
         TAG_SEQUENCE = 0x30,
         TAG_INTEGER = 0x02,
@@ -59,15 +106,22 @@ private:
         TAG_GETRESPONSE = 0xA2
     };
 
-    // ============================================================
-    // Low-level ASN.1 decoding helpers
-    // ============================================================
+    /**
+     * @brief Вспомогательные методы для декодирования ASN.1 BER.
+     *
+     * Набор низкоуровневых функций, используемых при разборе
+     * SNMP GET-запроса. Каждый метод обрабатывает отдельный
+     * элемент ASN.1 структуры и продвигает указатель входного буфера.
+     *
+     * Методы предназначены исключительно для внутреннего
+     * использования кодеком.
+     */
+
     bool readTagAndLength(const uint8_t*& p,
                           const uint8_t* end,
                           uint8_t expectedTag,
                           size_t& outLen,
                           ErrorMessage& err);
-
     bool readSequence(const uint8_t*& p,
                       const uint8_t* end,
                       const uint8_t*& seqEnd,
@@ -84,17 +138,32 @@ private:
     bool readOid(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
     bool readVarBind(const uint8_t*& p, const uint8_t* end, Oid& outOid, ErrorMessage& err);
 
-    // ============================================================
-    // Low-level ASN.1 encoding helpers (mirror of decoding)
-    // ============================================================
+    /**
+     * @brief Вспомогательные методы для кодирования ASN.1 BER.
+     *
+     * Набор низкоуровневых функций, используемых при формировании
+     * SNMP GET-RESPONSE сообщения. Методы являются логическим
+     * отражением функций декодирования.
+     *
+     * Предназначены исключительно для внутреннего использования
+     * кодеком.
+     */
+
     void encodeInteger(BerWriter& w, int value) const;
     void encodeOctetString(BerWriter& w, const std::string& str) const;
     void encodeNull(BerWriter& w) const;
     void encodeOid(BerWriter& w, const Oid& oid) const;
 
-    // ============================================================
-    // SNMP structural encoders
-    // ============================================================
+    /**
+     * @brief Методы формирования структур SNMP GET-RESPONSE.
+     *
+     * Набор функций, отвечающих за построение SNMP-ответа
+     * на основе разобранного GET-запроса и данных из UpsDataStore.
+     *
+     * Эти методы формируют логическую структуру ответа,
+     * используя низкоуровневые ASN.1 BER кодеры.
+     */
+
     void encodeVarBind(BerWriter& w, const Oid& oid, const UpsParameter* param) const;
     void encodeVarBindList(BerWriter& w,
                            const std::vector<Oid>& oids,
@@ -102,10 +171,18 @@ private:
     void encodeGetResponsePdu(BerWriter& w,
                               const SnmpGetRequest& req,
                               const UpsDataStore& store) const;
-    // friend класс для тестирования
+
+    // Дружественный класс для доступа к приватным методам при тестировании
     friend class SnmpCodecTestAccess;
 };
 
+/**
+ * @class SnmpCodecTestAccess
+ * @brief Вспомогательный класс для тестирования приватных методов SnmpCodec.
+ *
+ * Используется исключительно в unit-тестах и предоставляет
+ * контролируемый доступ к приватным методам кодека.
+ */
 class SnmpCodecTestAccess {
 public:
     static void encodeInteger(SnmpCodec& c, BerWriter& w, int v) { c.encodeInteger(w, v); }
