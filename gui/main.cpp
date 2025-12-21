@@ -1,3 +1,10 @@
+/**
+ * @file main.cpp
+ * @brief Точка входа GUI-приложения эмулятора UPS.
+ *
+ * Инициализирует QApplication, создаёт и отображает
+ * главное окно графического интерфейса (MainWindow).
+ */
 #include <QApplication>
 
 #include "main_window.h"
