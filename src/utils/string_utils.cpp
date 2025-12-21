@@ -1,7 +1,5 @@
 #include "string_utils.h"
 
-#include <fstream>
-
 namespace utils {
 
 std::string trim(const std::string& s) {
