@@ -1,3 +1,10 @@
+/**
+ * @file ups_parameter.h
+ * @brief Описание параметра UPS.
+ *
+ * Содержит структуру, представляющую один параметр
+ * источника бесперебойного питания, доступный через SNMP.
+ */
 #ifndef UPS_PARAMETER_H
 #define UPS_PARAMETER_H
 
@@ -5,7 +12,10 @@
 
 #include "ups_types.h"
 
+/// @ingroup ups
+
 /**
+ * @struct UpsParameter
  * @brief Параметр UPS (единица данных в UpsDataStore).
  *
  * Данная структура описывает один параметр устройства UPS,
@@ -42,7 +52,7 @@ struct UpsParameter {
      *
      * Указывает, является ли параметр строковым (String)
      * или числовым (Integer). Все значения всё равно хранятся
-     * в строковом виде, однако тип помогает DataStore
+     * в строковом виде, однако тип помогает UpsDataStore
      * корректно обрабатывать их.
      */
     UpsParameterType type;

@@ -10,9 +10,15 @@
 // =============================================================
 //  Таблица обычных OID-полей
 // =============================================================
+/**
+ * @brief Описание простой OID-поля модели UPS в UpsOids.
+ *
+ * Используется для автоматического сопоставления ключей INI-файла
+ * с соответствующими полями структуры UpsOids.
+ */
 struct OidFieldInfo {
-    const char* key;
-    std::string UpsOids::* field;
+    const char* key;               ///< Ключ параметра в конфигурациооном файле модели UPS.
+    std::string UpsOids::* field;  ///< Указатель на поле структуры UpsOids.
 };
 
 static const OidFieldInfo OID_FIELDS[] = {
@@ -29,9 +35,15 @@ static const OidFieldInfo OID_FIELDS[] = {
 // =============================================================
 //  Таблица сложных полей  { "Name": 1, "Other": 2 }
 // =============================================================
+/**
+ * @brief Описание поля с набором допустимых значений (value-set).
+ *
+ * Используется для параметров UPS, значения которых задаются
+ * через словарь "имя → числовое значение" в конфигурационном файле.
+ */
 struct ValueSetFieldInfo {
-    const char* key;
-    FieldValueSet FieldValueSets::* field;
+    const char* key;  ///< Ключ набора значений в конфигурационном файле модели.
+    FieldValueSet FieldValueSets::* field;  ///< Указатель на поле структуры FieldValueSets.
 };
 
 static const ValueSetFieldInfo VALUESET_FIELDS[] = {
