@@ -38,21 +38,25 @@ public:
 
     /**
      * @brief Возвращает имя модели UPS.
+     * @return Имя модели UPS.
      */
     const ModelName& modelName() const;
 
     /**
      * @brief Возвращает набор SNMP OID модели UPS.
+     * @return Набор SNMP OID модели UPS.
      */
     const UpsOids& oids() const;
 
     /**
      * @brief Возвращает описания перечислимых параметров модели UPS.
+     * @return Описания перечислимых параметров модели UPS.
      */
     const FieldValueSets& definedFields() const;
 
     /**
      * @brief Возвращает описание последней ошибки.
+     * @return Текст последней ошибки.
      */
     const ErrorMessage& lastError() const;
 
