@@ -9,6 +9,13 @@
 
 #include "main_window.h"
 
+/**
+ * @brief Точка входа GUI-приложения UPS Emulator.
+ *
+ * @param argc Количество аргументов командной строки
+ * @param argv Аргументы командной строки
+ * @return Код завершения приложения
+ */
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
 
@@ -17,3 +24,4 @@ int main(int argc, char* argv[]) {
 
     return app.exec();
 }
+
