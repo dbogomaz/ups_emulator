@@ -23,6 +23,8 @@ endif()
 if(1) # OPTIONS (TESTING, COVERAGE) BLOCK
     option(BUILD_TESTING "Build unit tests" ON)
     option(BUILD_COVERAGE "Enable coverage instrumentation" ON)
+    option(BUILD_GUI "Build GUI application" ON)
+
     if (BUILD_COVERAGE)
         set(BUILD_TESTING ON CACHE BOOL "Build unit tests" FORCE)
         set(COVERAGE_COMPILE_FLAGS --coverage -O0 -g)
@@ -86,7 +88,9 @@ if(1) # MAIN APPLICATION BLOCK
 endif()
 
 if(1) # GUI APPLICATION BLOCK
-    add_subdirectory(gui)
+    if (BUILD_GUI)
+        add_subdirectory(gui)
+    endif()
 endif()
 
 if(1) # ACTIVATE BUILD TESTS BLOCK

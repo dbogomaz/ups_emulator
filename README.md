@@ -84,6 +84,19 @@ cmake -B build -DBUILD_TESTING=OFF -DBUILD_COVERAGE=OFF
 cmake --build build
 ```
 
+### Сборка без GUI:
+
+GUI можно отключить опцией `BUILD_GUI`, если нужен только CLI-эмулятор
+или в окружении сборки нет Qt:
+
+```bash
+rm -rf build
+cmake -B build -DBUILD_TESTING=OFF -DBUILD_COVERAGE=OFF -DBUILD_GUI=OFF
+cmake --build build
+```
+
+По умолчанию `BUILD_GUI=ON`.
+
 ---
 
 ## Запуск эмулятора
