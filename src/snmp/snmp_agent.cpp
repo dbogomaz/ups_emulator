@@ -10,6 +10,8 @@
 
 SnmpAgent::SnmpAgent(UpsDataStore* store) : m_store(store) {}
 
+SnmpAgent::~SnmpAgent() { closeSocket(); }
+
 bool SnmpAgent::bind(uint16_t port) {
     // Защита от повтроного вызова
     if (m_sock >= 0) {
@@ -40,8 +42,7 @@ bool SnmpAgent::bind(uint16_t port) {
     if (setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         // LCOV_EXCL_START
         perror("setsockopt");
-        ::close(m_sock);
-        m_sock = -1;
+        closeSocket();
         return false;
         // LCOV_EXCL_STOP
     }
@@ -55,8 +56,7 @@ bool SnmpAgent::bind(uint16_t port) {
     // собственно привязываем сокет к порту адреса
     if (::bind(m_sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) < 0) {
         perror("bind");
-        ::close(m_sock);
-        m_sock = -1;
+        closeSocket();
         return false;
     }
 
@@ -160,11 +160,17 @@ bool SnmpAgent::run() {
 
     // Останавливаемся и закрываем сокет
 
-    ::close(m_sock);
-    m_sock = -1;
+    closeSocket();
     m_running.store(false);
     printf("SnmpAgent stopped\n");
     return true;
+}
+
+void SnmpAgent::closeSocket() {
+    if (m_sock >= 0) {
+        ::close(m_sock);
+        m_sock = -1;
+    }
 }
 
 void SnmpAgent::stop() {

@@ -43,6 +43,11 @@ public:
     explicit SnmpAgent(UpsDataStore* store);
 
     /**
+     * @brief Закрывает UDP-сокет агента.
+     */
+    ~SnmpAgent();
+
+    /**
      * @brief Инициализирует UDP-сокет и привязывает его к порту.
      *
      * @param port UDP-порт для приёма SNMP-запросов (по умолчанию 161).
@@ -74,6 +79,11 @@ public:
     void stop();
 
 private:
+    /**
+     * @brief Закрывает UDP-сокет, если он открыт.
+     */
+    void closeSocket();
+
     /**
      * @brief Обрабатывает входящий SNMP-пакет.
      */
