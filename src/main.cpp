@@ -1,8 +1,11 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <csignal>
 #include <iostream>
+#include <limits>
+#include <stdexcept>
 #include <thread>
 
 #include "ups_emulator.h"
@@ -14,6 +17,7 @@ struct CliOptions {
     bool showHelp = false;
     bool listModels = false;
     std::string modelId;
+    uint16_t port = 161;
     std::string error;
 };
 
@@ -71,7 +75,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (!emulator.start()) {
+    if (!emulator.start(opts.port)) {
         std::cerr << "Failed to start emulator: " << emulator.lastError() << "\n";
         return 1;
     }
@@ -112,6 +116,36 @@ CliOptions parseArgs(int argc, char* argv[]) {
             continue;
         }
 
+        if (arg == "-p" || arg == "--port") {
+            if (i + 1 >= argc) {
+                opts.error = "Option '" + arg + "' requires an argument";
+                return opts;
+            }
+
+            const std::string value = argv[++i];
+            const bool isNumber =
+                !value.empty() &&
+                std::all_of(value.begin(), value.end(), [](char c) { return c >= '0' && c <= '9'; });
+
+            if (!isNumber) {
+                opts.error = "Invalid port: " + value;
+                return opts;
+            }
+
+            try {
+                const unsigned long port = std::stoul(value);
+                if (port == 0 || port > std::numeric_limits<uint16_t>::max()) {
+                    opts.error = "Invalid port: " + value;
+                    return opts;
+                }
+                opts.port = static_cast<uint16_t>(port);
+            } catch (const std::out_of_range&) {
+                opts.error = "Invalid port: " + value;
+                return opts;
+            }
+            continue;
+        }
+
         opts.error = "Unknown option: " + arg;
         return opts;
     }
@@ -124,5 +158,6 @@ void printHelp(const char* progName) {
               << "Options:\n"
               << "  -l, --list           List available UPS models and exit\n"
               << "  -m, --model <ID>     Select UPS model by ID\n"
+              << "  -p, --port <PORT>    Set UDP port (default: 161)\n"
               << "      --help           Show this help and exit\n";
 }
